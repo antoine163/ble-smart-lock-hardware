@@ -1,9 +1,3 @@
-<style>
-r { color: Red }
-g { color: Green }
-b { color: Blue }
-</style>
-
 # Bluetooth LE Smart Lock
 Ce project est une serrure électronique à déverrouillage par Bluetooth Low Energie.  
 
@@ -28,10 +22,10 @@ Il est constitué de 4 parties:
 | BLE           | Serrure | Éclairage ambience  | Éclairage extérieur   | Voyant Bouton |
 | ------------- | :-----: | :------:            | :------:              | :----:        |
 | Non connecté  | Fermé   | Éteint              | Éteint                | Éteint        |
-| Connecté      | Fermé   | <b>Bleu</b>         | Éteint                | <b>Allumé</b> |
-| Déverrouillé  | Fermé   | <g>Vert</g>         | Éteint                | <b>Allumé</b> | 
+| Connecté      | Fermé   | Bleu                | Éteint                | **Allumé**    |
+| Déverrouillé  | Fermé   | Vert                | Éteint                | **Allumé**    | 
 ||                              
-| Non connecté  | Ouvert  | <r>Rouge</r>        | Éteint                | Éteint        |
+| Non connecté  | Ouvert  | Rouge               | Éteint                | Éteint        |
 | Connecté      | Ouvert  | **Blanc**           | **Allumé**            | Éteint        |
 | Déverrouillé  | Ouvert  | **Blanc**           | **Allumé**            | Éteint        |
 
