@@ -4635,6 +4635,15 @@
 				(hide yes)
 			)
 		)
+		(property "Vendor" "Torex:XC9264b755"
+			(at 172.72 63.5 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
 		(pin "4"
 			(uuid "7c10ea2e-8945-43ca-8765-4409fb71d3fd")
 		)

@@ -7,10 +7,13 @@ Cette carte est la carte principale du projet. Elle est basée sur le module rad
 
 ## Réalisation
 En progression...
-![BleSmartLock back](breadboard_poc.jpg) 
+![BleSmartLock poc](breadboard_poc.jpg) 
+
+Vous pouvez trouver [ici](production/Ble_Smart_Lock_1.0-ibom.html) la bom interactive. 
 
 # Schématique
 ![ ](BleSmartLock.svg  "")
 ![ ](BleSmartLock-Power.svg  "")
-![ ](BleSmartLock-InOut.svg  "")
 ![ ](BleSmartLock-Bluenrg.svg  "")
+![ ](BleSmartLock-InOut.svg  "")
+
