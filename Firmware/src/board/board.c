@@ -47,9 +47,13 @@ void boardInit()
     GPIO_StructInit(&GPIO_InitStruct);
 
     // IN
-    // GPIO_InitStruct.GPIO_Pin = BOND_PIN;
-    // GPIO_InitStruct.GPIO_Mode = BOND_MODE;
-    // GPIO_Init(&GPIO_InitStruct);
+    GPIO_InitStruct.GPIO_Pin = BOND_PIN;
+    GPIO_InitStruct.GPIO_Mode = BOND_MODE;
+    GPIO_Init(&GPIO_InitStruct);
+
+    GPIO_InitStruct.GPIO_Pin = OPEN_PIN;
+    GPIO_InitStruct.GPIO_Mode = OPEN_MODE;
+    GPIO_Init(&GPIO_InitStruct);
 
     // IN / OUT
     GPIO_ResetBits(LOCK_PIN);

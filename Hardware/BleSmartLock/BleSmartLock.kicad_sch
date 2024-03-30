@@ -4,6 +4,12 @@
 	(generator_version "8.0")
 	(uuid "8a73b0a9-83ac-42ec-85f6-a48bae52f84c")
 	(paper "A4")
+	(title_block
+		(title "Ble Smart Lock")
+		(date "2024-03-30")
+		(rev "v1.0")
+		(company "antoine163")
+	)
 	(lib_symbols
 		(symbol "Mechanical:MountingHole"
 			(pin_names

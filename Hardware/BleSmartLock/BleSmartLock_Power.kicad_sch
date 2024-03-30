@@ -4,6 +4,12 @@
 	(generator_version "8.0")
 	(uuid "1f03609d-2876-403a-a280-e5607b281100")
 	(paper "A4")
+	(title_block
+		(title "Ble Smart Lock")
+		(date "2024-03-30")
+		(rev "v1.0")
+		(company "antoine163")
+	)
 	(lib_symbols
 		(symbol "AM163:RT9086-xxGB"
 			(exclude_from_sim no)
@@ -344,116 +350,6 @@
 						)
 					)
 					(number "5"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-			)
-		)
-		(symbol "Connector_Generic:Conn_01x01"
-			(pin_names
-				(offset 1.016) hide)
-			(exclude_from_sim no)
-			(in_bom yes)
-			(on_board yes)
-			(property "Reference" "J"
-				(at 0 2.54 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Value" "Conn_01x01"
-				(at 0 -2.54 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-				)
-			)
-			(property "Footprint" ""
-				(at 0 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "Datasheet" "~"
-				(at 0 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "Description" "Generic connector, single row, 01x01, script generated (kicad-library-utils/schlib/autogen/connector/)"
-				(at 0 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "ki_keywords" "connector"
-				(at 0 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(property "ki_fp_filters" "Connector*:*_1x??_*"
-				(at 0 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(hide yes)
-				)
-			)
-			(symbol "Conn_01x01_1_1"
-				(rectangle
-					(start -1.27 0.127)
-					(end 0 -0.127)
-					(stroke
-						(width 0.1524)
-						(type default)
-					)
-					(fill
-						(type none)
-					)
-				)
-				(rectangle
-					(start -1.27 1.27)
-					(end 1.27 -1.27)
-					(stroke
-						(width 0.254)
-						(type default)
-					)
-					(fill
-						(type background)
-					)
-				)
-				(pin passive line
-					(at -5.08 0 0)
-					(length 3.81)
-					(name "Pin_1"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "1"
 						(effects
 							(font
 								(size 1.27 1.27)
@@ -2520,16 +2416,6 @@
 	)
 	(wire
 		(pts
-			(xy 132.08 137.16) (xy 137.16 137.16)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "04ceba7a-d644-450d-9f96-00b509cb93ec")
-	)
-	(wire
-		(pts
 			(xy 196.85 71.12) (xy 208.28 71.12)
 		)
 		(stroke
@@ -2827,16 +2713,6 @@
 			(type default)
 		)
 		(uuid "45a971af-150d-4b3d-b03d-c181e12cc049")
-	)
-	(wire
-		(pts
-			(xy 153.67 83.82) (xy 153.67 85.09)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "49c766eb-3304-4f99-bb25-cf59c6823c4c")
 	)
 	(wire
 		(pts
@@ -3510,16 +3386,6 @@
 	)
 	(wire
 		(pts
-			(xy 153.67 55.88) (xy 153.67 58.42)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "f6e6299c-0d73-4437-b1aa-c6f10ca9db20")
-	)
-	(wire
-		(pts
 			(xy 118.11 58.42) (xy 118.11 60.96)
 		)
 		(stroke
@@ -3727,74 +3593,6 @@
 		)
 	)
 	(symbol
-		(lib_id "Connector_Generic:Conn_01x01")
-		(at 153.67 50.8 270)
-		(mirror x)
-		(unit 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(dnp no)
-		(uuid "064da553-0d14-4a2a-9c44-b4637ed29b7f")
-		(property "Reference" "J3"
-			(at 151.13 49.5299 90)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify right)
-			)
-		)
-		(property "Value" "Conn_01x01"
-			(at 151.13 52.0699 90)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify right)
-				(hide yes)
-			)
-		)
-		(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x01_P2.54mm_Vertical"
-			(at 153.67 50.8 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Datasheet" "~"
-			(at 153.67 50.8 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Description" "Generic connector, single row, 01x01, script generated (kicad-library-utils/schlib/autogen/connector/)"
-			(at 153.67 50.8 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(pin "1"
-			(uuid "f686c747-c652-458b-997c-8cbcc0052eae")
-		)
-		(instances
-			(project "BleSmartLock"
-				(path "/8a73b0a9-83ac-42ec-85f6-a48bae52f84c/cbe0b1d7-2f9f-492a-a494-a8cb2210dc9c"
-					(reference "J3")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "power:GND")
 		(at 115.57 152.4 0)
 		(unit 1)
@@ -3939,17 +3737,15 @@
 	)
 	(symbol
 		(lib_id "Connector_Generic:Conn_01x02")
-		(at 55.88 69.85 0)
-		(mirror y)
+		(at 55.88 72.39 180)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
 		(on_board yes)
 		(dnp no)
-		(fields_autoplaced yes)
 		(uuid "1a65ea80-e439-4982-8db8-b7b80066f0fa")
 		(property "Reference" "J1"
-			(at 53.848 70.2115 0)
+			(at 53.848 72.0285 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -3958,7 +3754,7 @@
 			)
 		)
 		(property "Value" "Conn_01x02"
-			(at 53.848 72.9866 0)
+			(at 53.848 69.2534 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -3967,7 +3763,7 @@
 			)
 		)
 		(property "Footprint" "Connector_JST:JST_PH_B2B-PH-K_1x02_P2.00mm_Vertical"
-			(at 55.88 69.85 0)
+			(at 55.88 72.39 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -3976,7 +3772,7 @@
 			)
 		)
 		(property "Datasheet" "~"
-			(at 55.88 69.85 0)
+			(at 55.88 72.39 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -3985,7 +3781,7 @@
 			)
 		)
 		(property "Description" "Generic connector, single row, 01x02, script generated (kicad-library-utils/schlib/autogen/connector/)"
-			(at 55.88 69.85 0)
+			(at 55.88 72.39 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -3994,7 +3790,7 @@
 			)
 		)
 		(property "Vendor" "JST:B2B-PH-K-S"
-			(at 55.88 69.85 0)
+			(at 55.88 72.39 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -4319,7 +4115,7 @@
 				)
 			)
 		)
-		(property "Footprint" "AM163:L_TDK_VLS252012HBX_Handsoldering"
+		(property "Footprint" "Inductor_SMD:L_1008_2520Metric_Pad1.43x2.20mm_HandSolder"
 			(at 189.23 58.42 0)
 			(effects
 				(font
@@ -4328,7 +4124,7 @@
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "~"
+		(property "Datasheet" "https://product.tdk.com/system/files/dam/doc/product/inductor/inductor/smd/catalog/inductor_commercial_power_vls252012hbx-1_en.pdf"
 			(at 189.23 58.42 0)
 			(effects
 				(font
@@ -5584,73 +5380,6 @@
 		)
 	)
 	(symbol
-		(lib_id "Connector_Generic:Conn_01x01")
-		(at 137.16 132.08 90)
-		(unit 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(dnp no)
-		(uuid "cac270b6-842f-47d6-ab3c-67b3c5a6bb9b")
-		(property "Reference" "J2"
-			(at 139.7 130.8099 90)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify right)
-			)
-		)
-		(property "Value" "Conn_01x01"
-			(at 139.7 133.3499 90)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify right)
-				(hide yes)
-			)
-		)
-		(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x01_P2.54mm_Vertical"
-			(at 137.16 132.08 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Datasheet" "~"
-			(at 137.16 132.08 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Description" "Generic connector, single row, 01x01, script generated (kicad-library-utils/schlib/autogen/connector/)"
-			(at 137.16 132.08 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(pin "1"
-			(uuid "ef0a9b4e-0e93-4eba-87f2-28f70363b246")
-		)
-		(instances
-			(project "BleSmartLock"
-				(path "/8a73b0a9-83ac-42ec-85f6-a48bae52f84c/cbe0b1d7-2f9f-492a-a494-a8cb2210dc9c"
-					(reference "J2")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
 		(lib_id "Device:R")
 		(at 208.28 77.47 0)
 		(unit 1)
@@ -5792,74 +5521,6 @@
 			(project "BleSmartLock"
 				(path "/8a73b0a9-83ac-42ec-85f6-a48bae52f84c/cbe0b1d7-2f9f-492a-a494-a8cb2210dc9c"
 					(reference "D1")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "Connector_Generic:Conn_01x01")
-		(at 153.67 90.17 90)
-		(mirror x)
-		(unit 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(dnp no)
-		(uuid "e7185ba4-c727-4987-978a-263f4242ddd4")
-		(property "Reference" "J4"
-			(at 151.13 88.8999 90)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Value" "Conn_01x01"
-			(at 151.13 91.4399 90)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-				(hide yes)
-			)
-		)
-		(property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x01_P2.54mm_Vertical"
-			(at 153.67 90.17 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Datasheet" "~"
-			(at 153.67 90.17 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(property "Description" "Generic connector, single row, 01x01, script generated (kicad-library-utils/schlib/autogen/connector/)"
-			(at 153.67 90.17 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(hide yes)
-			)
-		)
-		(pin "1"
-			(uuid "adfbf164-9027-485e-a4c9-d97b2dbea7da")
-		)
-		(instances
-			(project "BleSmartLock"
-				(path "/8a73b0a9-83ac-42ec-85f6-a48bae52f84c/cbe0b1d7-2f9f-492a-a494-a8cb2210dc9c"
-					(reference "J4")
 					(unit 1)
 				)
 			)

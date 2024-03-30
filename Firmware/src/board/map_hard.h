@@ -28,6 +28,8 @@
 // IN
 #define BOND_PIN                GPIO_Pin_7
 #define BOND_MODE               GPIO_Input
+#define OPEN_PIN                GPIO_Pin_12
+#define OPEN_MODE               GPIO_Input
 
 // IN/OUT
 #define LOCK_PIN                GPIO_Pin_6
