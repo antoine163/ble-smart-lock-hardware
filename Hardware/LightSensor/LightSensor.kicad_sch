@@ -5,10 +5,10 @@
 	(uuid "f1bb0423-ae50-4549-b0f4-4c362f6eb529")
 	(paper "A4")
 	(title_block
-		(title "BleSmartLock - LightSensor")
-		(date "2024-03-12")
+		(title "Ble Smart Lock - Light Sensor")
+		(date "2024-03-31")
 		(rev "1.0")
-		(company "AM163")
+		(company "antoine163")
 	)
 	(lib_symbols
 		(symbol "Connector_Generic:Conn_01x02"
