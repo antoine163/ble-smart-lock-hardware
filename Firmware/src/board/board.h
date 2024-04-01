@@ -27,6 +27,7 @@
 
 // Includes --------------------------------------------------------------------
 #include "BlueNRG1_gpio.h"
+#include "map_hard.h"
 
 
 // Define ----------------------------------------------------------------------
@@ -38,13 +39,10 @@
 // #define SW_VERSION_BUILD_STR(major, minor, build)   "v" STRINGIFY(major) "." STRINGIFY(minor) "." STRINGIFY(build)
 // #define SW_VERSION_STR      SW_VERSION_BUILD_STR(SW_VERSION_MAJOR, SW_VERSION_MINOR, SW_VERSION_BUILD)
 
-#define LED_PIN                 GPIO_Pin_14
-#define LED_MODE                GPIO_Output
-
-
 
 // Prototype functions ---------------------------------------------------------
 void boardInit();
+int boardPrintf(char const * format, ...);
 
 static inline void boardLedOn()
 {

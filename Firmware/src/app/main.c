@@ -44,6 +44,8 @@ void vTaskCode(void *pvParameters)
         vTaskDelay( 500 / portTICK_PERIOD_MS );
         boardLedOff();
         vTaskDelay( 500 / portTICK_PERIOD_MS );
+
+        boardPrintf("Hello\r\n");
     }
 }
 

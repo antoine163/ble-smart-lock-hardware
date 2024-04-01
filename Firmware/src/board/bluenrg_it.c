@@ -27,7 +27,7 @@
 
 // Includes --------------------------------------------------------------------
 // #include "tick.h"
-// #include "uart.h"
+#include "drivers/uart.h"
 // #include "bluenrg1_stack.h"
 // #include "board.h"
 
@@ -37,10 +37,11 @@
 //     _tick_isr_handler();
 // }
 
-// void UART_Handler()
-// {
-//     _uart_isr_handler();
-// }
+extern uart_t _serial;
+void UART_Handler()
+{
+    _uart_isr_handler(&_serial);
+}
 
 // void GPIO_Handler(void)
 // {

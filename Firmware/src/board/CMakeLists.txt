@@ -6,6 +6,7 @@ target_sources(board PRIVATE
 )
 
 target_sources(board PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/drivers/uart.c
     ${CMAKE_CURRENT_SOURCE_DIR}/bluenrg_it.c
 )
 
