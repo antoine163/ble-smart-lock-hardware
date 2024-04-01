@@ -111,7 +111,7 @@ int main()
         uart_printf("ADC value: %d.%03d mV | dc: %d.%03d%% | %s\r\n",
                     PRINT_INT(val), PRINT_FLOAT(val),
                     PRINT_INT(dc), PRINT_FLOAT(dc),
-                    (GPIO_ReadBit(OPEN_PIN)==Bit_SET)? "open":"close");
+                    (GPIO_ReadBit(OPENED_PIN)==Bit_SET)? "open":"close");
 
         if (cpt == 1000 / DELAY)
         {

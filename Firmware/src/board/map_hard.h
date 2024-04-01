@@ -28,17 +28,17 @@
 // IN
 #define BOND_PIN                GPIO_Pin_7
 #define BOND_MODE               GPIO_Input
-#define OPEN_PIN                GPIO_Pin_12
-#define OPEN_MODE               GPIO_Input
+#define OPENED_PIN              GPIO_Pin_6
+#define OPENED_MODE             GPIO_Input
 
 // IN/OUT
-#define LOCK_PIN                GPIO_Pin_6
+#define LOCK_PIN                GPIO_Pin_12
 #define LOCK_MODE_OUT           GPIO_Output
 #define LOCK_MODE_IN            GPIO_Input
 
 // OUT
-#define LED_PIN              GPIO_Pin_14
-#define LED_MODE             GPIO_Output
+#define LED_PIN                 GPIO_Pin_14
+#define LED_MODE                GPIO_Output
 
 #define EN_IO_PIN               GPIO_Pin_5
 #define EN_IO_MODE              GPIO_Output
@@ -47,18 +47,18 @@
 #define LIGHT_RED_PIN           GPIO_Pin_0
 #define LIGHT_RED_MODE          GPIO_Output
 
-#define LIGHT_GREEN_PIN         GPIO_Pin_1
-#define LIGHT_GREEN_MODE        GPIO_Output
-
-#define LIGHT_BLUE_PIN          GPIO_Pin_2
+#define LIGHT_BLUE_PIN          GPIO_Pin_1
 #define LIGHT_BLUE_MODE         GPIO_Output
 
-#define LIGHT_WHITE_PIN         GPIO_Pin_4
+#define LIGHT_GREEN_PIN         GPIO_Pin_2
+#define LIGHT_GREEN_MODE        GPIO_Output
+
+#define LIGHT_WHITE_PIN         GPIO_Pin_3
 #define LIGHT_WHITE_MODE        GPIO_Output
 
-#define LIGHT_PWM_PIN           GPIO_Pin_3
+#define LIGHT_PWM_PIN           GPIO_Pin_4
 #define LIGHT_PWM_MODE_OUT      GPIO_Output
-#define LIGHT_PWM_MODE_PWM      Serial1_Mode
+#define LIGHT_PWM_MODE_PWM      Serial2_Mode
 
 // UART
 #define UART_RX_PIN             GPIO_Pin_11

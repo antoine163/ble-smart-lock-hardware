@@ -52,26 +52,26 @@ int pwm_init()
     timer_init.MFT_Prescaler = 80 - 1; /* 5 us clock */
 #endif
 
-    /* MFT2 configuration */
+    /* MFT1 configuration */
     timer_init.MFT_Clock1 = MFT_PRESCALED_CLK;
     timer_init.MFT_Clock2 = MFT_NO_CLK;
     timer_init.MFT_CRA = 1000 - 1; /* 5 ms positive duration */
     timer_init.MFT_CRB = 1000 - 1; /* 5 ms negative duration */
-    MFT_Init(MFT2, &timer_init);
+    MFT_Init(MFT1, &timer_init);
 
-    /* Connect PWM output from MFT2 to TnA pin (PWM1) */
-    MFT_TnXEN(MFT2, MFT_TnA, ENABLE);
+    /* Connect PWM output from MFT1 to TnA pin (PWM0) */
+    MFT_TnXEN(MFT1, MFT_TnA, ENABLE);
 
     /* Start MFT timers */
-    MFT_Cmd(MFT2, ENABLE);
+    MFT_Cmd(MFT1, ENABLE);
 
     return 0;
 }
 
 int pwm_deinit()
 {
-    MFT_TnXEN(MFT2, MFT_TnA, DISABLE);
-    MFT_DeInit(MFT2);
+    MFT_TnXEN(MFT1, MFT_TnA, DISABLE);
+    MFT_DeInit(MFT1);
     return 0;
 }
 
@@ -81,6 +81,6 @@ void pwm_setDutyCycle(float duty_cycle)
     uint32_t tmcrb = 2000UL - tmcra;
 
 
-    MFT2->TNCRA = (uint16_t)tmcra;
-    MFT2->TNCRB = (uint16_t)tmcrb;
+    MFT1->TNCRA = (uint16_t)tmcra;
+    MFT1->TNCRB = (uint16_t)tmcrb;
 }

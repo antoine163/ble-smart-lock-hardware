@@ -51,8 +51,8 @@ void boardInit()
     GPIO_InitStruct.GPIO_Mode = BOND_MODE;
     GPIO_Init(&GPIO_InitStruct);
 
-    GPIO_InitStruct.GPIO_Pin = OPEN_PIN;
-    GPIO_InitStruct.GPIO_Mode = OPEN_MODE;
+    GPIO_InitStruct.GPIO_Pin = OPENED_PIN;
+    GPIO_InitStruct.GPIO_Mode = OPENED_MODE;
     GPIO_Init(&GPIO_InitStruct);
 
     // IN / OUT
