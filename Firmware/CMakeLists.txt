@@ -88,7 +88,7 @@ add_subdirectory(src)
 # Output files
 # ##############################################################################
 add_executable(${CMAKE_PROJECT_NAME}.elf src/app/main.c)
-target_link_libraries(${CMAKE_PROJECT_NAME}.elf application)
+target_link_libraries(${CMAKE_PROJECT_NAME}.elf app)
 
 # Additional commands
 # ##############################################################################

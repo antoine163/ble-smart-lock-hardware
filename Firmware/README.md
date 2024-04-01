@@ -1,6 +1,9 @@
 # Bluetooth LE Smart Lock - Firmware
 Il s'agit du firmware à flasher dans le module BleuNRG.
 
+# Cloner le project et les sous modules
+git clone --recurse-submodules https://github.com:antoine163/ble-smart-lock.git
+
 # Comment compiler
 1) Installer la chaîne de compilation croisé *arm-none-eabi-gcc*.
 2) Installer l'outie *cmake*.

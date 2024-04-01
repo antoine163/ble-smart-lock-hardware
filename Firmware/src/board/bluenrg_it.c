@@ -26,21 +26,21 @@
 #define BLUENRG_IT_H
 
 // Includes --------------------------------------------------------------------
-#include "tick.h"
-#include "uart.h"
-#include "bluenrg1_stack.h"
-#include "board.h"
+// #include "tick.h"
+// #include "uart.h"
+// #include "bluenrg1_stack.h"
+// #include "board.h"
 
 // Implemented functions ---------------------------------------------------------
-void SysTick_Handler()
-{
-    _tick_isr_handler();
-}
+// void SysTick_Handler()
+// {
+//     _tick_isr_handler();
+// }
 
-void UART_Handler()
-{
-    _uart_isr_handler();
-}
+// void UART_Handler()
+// {
+//     _uart_isr_handler();
+// }
 
 // void GPIO_Handler(void)
 // {
@@ -61,9 +61,11 @@ void UART_Handler()
 //     }
 // }
 
-void Blue_Handler()
-{
-    RAL_Isr();
-}
+// void Blue_Handler()
+// {
+//     RAL_Isr();
+// }
+
+void empru(){}
 
 #endif // BLUENRG_IT_H

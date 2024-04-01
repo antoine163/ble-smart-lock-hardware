@@ -1,18 +1,17 @@
 # Add application library
-add_library(application STATIC)
+add_library(app STATIC)
 
-target_sources(application PRIVATE
+target_sources(app PRIVATE
 )
 
-target_sources(application PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/ble_events.c
+target_sources(app PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/syscall.c
 )
 
-target_include_directories(application PUBLIC
+target_include_directories(app PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-target_link_libraries(application PUBLIC
+target_link_libraries(app PUBLIC
     board
 )
