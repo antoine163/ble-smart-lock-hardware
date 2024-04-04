@@ -32,14 +32,19 @@
 #include <stdio.h>
 #include <stdarg.h>
 
-// Global variables ------------------------------------------------------------
-uart_t _serial;
-static uint8_t _serialBufTx[UART_TX_FIFO_SIZE];
-static uint8_t _serialBufRx[UART_RX_FIFO_SIZE];
+#include <FreeRTOS.h>
+#include <semphr.h>
 
 // Prototype functions ---------------------------------------------------------
 void _boardInitGpio();
 void _boardInitUart();
+
+// Global variables ------------------------------------------------------------
+uart_t _serial;
+static uint8_t _serialBufTx[UART_TX_FIFO_SIZE];
+static uint8_t _serialBufRx[UART_RX_FIFO_SIZE];
+static SemaphoreHandle_t _serialSemaphore = NULL;
+static  StaticSemaphore_t _serialMutexBuffer;
 
 // Implemented functions -------------------------------------------------------
 
@@ -48,9 +53,13 @@ void _boardInitUart();
  */
 void boardInit()
 {
-    // Ini system
+    // Init system
     SystemInit();
 
+    // Make semaphores
+    _serialSemaphore = xSemaphoreCreateRecursiveMutexStatic(&_serialMutexBuffer);
+
+    // Init peripherals
     _boardInitGpio();
     _boardInitUart();
 }
@@ -103,5 +112,9 @@ int boardPrintf(char const *format, ...)
     int n = vsnprintf(str, sizeof(str), format, ap);
     va_end(ap);
 
-    return uart_write(&_serial, str, n);
+    xSemaphoreTakeRecursive(_serialSemaphore, portMAX_DELAY);
+    n = uart_write(&_serial, str, n);
+    xSemaphoreGiveRecursive(_serialSemaphore);
+
+    return n;
 }

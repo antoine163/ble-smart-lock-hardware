@@ -1,7 +1,7 @@
 /***
  * The MIT License (MIT)
  *
- * Copyright (c) 2023 antoine163
+ * Copyright (c) 2024 antoine163
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,21 +22,26 @@
  * SOFTWARE.
  */
 
-#ifndef BLUENRG_IT_H
-#define BLUENRG_IT_H
+/**
+ * @file taskApp.h
+ * @author antoine163
+ * @date 03-04-2024
+ * @brief Task of the application
+ */
 
-// Includes --------------------------------------------------------------------
-#include "drivers/uart.h"
-#include "tasks/taskBle/taskBle.h"
+// Include ---------------------------------------------------------------------
+#include "taskApp.h"
+#include "board.h"
 
-// Implemented functions ---------------------------------------------------------
+#include <FreeRTOS.h>
+#include <task.h>
 
-extern uart_t _serial;
-void UART_Handler()
+// Implemented functions -------------------------------------------------------
+void taskAppCode(__attribute__((unused)) void *parameters)
 {
-    uartIsrHandler(&_serial);
+    while (1)
+    {
+        boardLedToggel();
+        vTaskDelay( 200 / portTICK_PERIOD_MS );
+    }   
 }
-
-// Blue_Handler see taskBle.c
-
-#endif // BLUENRG_IT_H

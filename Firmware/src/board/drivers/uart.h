@@ -104,7 +104,7 @@ int uart_write(uart_t *dev, void const *buf, unsigned int nbyte);
 int uart_read(uart_t *dev, void *buf, unsigned int nbyte);
 
 // ISR handler -----------------------------------------------------------------
-static inline void _uart_isr_handler(uart_t *dev)
+static inline void uartIsrHandler(uart_t *dev)
 {
     // -- Manage transmit data --
     // The UART Tx FiFo is empty and the interrupt is enable ?

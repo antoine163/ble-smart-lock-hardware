@@ -1,18 +1,18 @@
 /***
  * The MIT License (MIT)
  *
- * Copyright (c) 2023 antoine163
- *
+ * Copyright (c) 2024 antoine163
+ * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- *
+ * 
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- *
+ * 
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -22,21 +22,17 @@
  * SOFTWARE.
  */
 
-#ifndef BLUENRG_IT_H
-#define BLUENRG_IT_H
+/**
+ * @file taskBle.h
+ * @author antoine163
+ * @date 02-04-2024
+ * @brief Task of BLE radio
+ */
 
-// Includes --------------------------------------------------------------------
-#include "drivers/uart.h"
-#include "tasks/taskBle/taskBle.h"
+#ifndef TASK_BLE_H
+#define TASK_BLE_H
 
-// Implemented functions ---------------------------------------------------------
+// Prototype functions ---------------------------------------------------------
+void taskBleCode(void *parameters);
 
-extern uart_t _serial;
-void UART_Handler()
-{
-    uartIsrHandler(&_serial);
-}
-
-// Blue_Handler see taskBle.c
-
-#endif // BLUENRG_IT_H
+#endif // TASK_BLE_H

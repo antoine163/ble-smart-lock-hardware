@@ -164,6 +164,7 @@ int uart_write(uart_t *dev, void const *buf, unsigned int nbyte)
     if (nbyte == 0)
         return 0;
 
+    // Disable and clean Tx FIFO empty interrupt
     UART_ITConfig(UART_IT_TXFE, DISABLE);
     UART_ClearITPendingBit(UART_IT_TXFE);
 

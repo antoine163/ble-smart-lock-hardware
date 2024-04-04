@@ -23,7 +23,7 @@
  */
 
 /**
- * @file ble_config.h
+ * @file bleConfig.h
  * @author antoine163
  * @date 15.07.2023
  * @brief This file is recovered and adjusted from examples of ST.

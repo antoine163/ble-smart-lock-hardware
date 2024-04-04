@@ -21,7 +21,6 @@ target_sources(device PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/bluenrg-2/Bluetooth_LE/src/stack_priv_api_stubs.c
     ${CMAKE_CURRENT_SOURCE_DIR}/bluenrg-2/Bluetooth_LE/src/stack_sc_api_stubs.c
     ${CMAKE_CURRENT_SOURCE_DIR}/bluenrg-2/Bluetooth_LE/src/stack_slvonly_api_stubs.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/bluenrg-2/Bluetooth_LE/src/stack_user_cfg.c
 
     # CMSIS source
     ${CMAKE_CURRENT_SOURCE_DIR}/bluenrg-2/CMSIS/Device/ST/BlueNRG1/Source/system_BlueNRG1.c   
@@ -34,6 +33,9 @@ target_sources(device PUBLIC
     # Periph Driver source
     ${CMAKE_CURRENT_SOURCE_DIR}/bluenrg-2/BlueNRG1_Periph_Driver/src/BlueNRG1_flash.c
     ${CMAKE_CURRENT_SOURCE_DIR}/bluenrg-2/BlueNRG1_Periph_Driver/src/BlueNRG1_pka.c
+
+    # Bluetooth_LE source
+    ${CMAKE_CURRENT_SOURCE_DIR}/bluenrg-2/Bluetooth_LE/src/stack_user_cfg.c
 )
 
 target_include_directories(device PUBLIC
@@ -66,7 +68,7 @@ target_compile_options(device PRIVATE
     -w # Disable all warning
 )
 
-target_link_libraries(device PRIVATE
+target_link_libraries(device PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/bluenrg-2/Bluetooth_LE/library/libbluenrg1_stack.a
     ${CMAKE_CURRENT_SOURCE_DIR}/bluenrg-2/cryptolib/libcrypto.a
 )

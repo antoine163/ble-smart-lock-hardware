@@ -24,7 +24,7 @@
 					"tools/openocd/bluenrg-2.cfg"
 				],
 				"searchDir": [],
-				"runToEntryPoint": "main",
+				"runToEntryPoint": "",
 				"showDevDebugOutput": "none",
 				"svdFile": "BlueNRG2.svd",
 				"BMPGDBSerialPort": "/dev/ttyACM0",

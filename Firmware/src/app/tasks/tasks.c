@@ -1,7 +1,7 @@
 /***
  * The MIT License (MIT)
  *
- * Copyright (c) 2023 antoine163
+ * Copyright (c) 2024 antoine163
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,19 +22,38 @@
  * SOFTWARE.
  */
 
-// Includes --------------------------------------------------------------------
-#include "board.h"
-#include "tasks/tasks.h"
+/**
+ * @file tasks.c
+ * @author antoine163
+ * @date 02-04-2024
+ * @brief All tasks of this firmware
+ */
+
+// Include ---------------------------------------------------------------------
+#include "tasks.h"
 
 #include <FreeRTOS.h>
 #include <task.h>
 
+// Global variables ------------------------------------------------------------
+#undef STATIC_TASK
+#define STATIC_TASK(taskCode, name, stackDepth, parameters, priority) \
+    static StaticTask_t _taskBuffer_##taskCode;                       \
+    static StackType_t _tasksStack_##taskCode[stackDepth];
+TASKS_STATIC_LIST
+
 // Implemented functions -------------------------------------------------------
-int main()
+void tasksStaticCreate()
 {
-    boardInit();
-    boardPrintf(" -- Ble Smart lock " "todo_version" " -- \r\n");
-    tasksStaticCreate();
-    vTaskStartScheduler();
-    for (;;);
+    // Create all static task listed in TASKS_STATIC_LIST
+#undef STATIC_TASK
+#define STATIC_TASK(taskCode, name, stackDepth, parameters, priority) \
+    xTaskCreateStatic(taskCode,                                       \
+                      name,                                           \
+                      stackDepth,                                     \
+                      parameters,                                     \
+                      priority,                                       \
+                      _tasksStack_##taskCode,                         \
+                      &_taskBuffer_##taskCode);
+    TASKS_STATIC_LIST
 }
