@@ -32,6 +32,7 @@
 // Include ---------------------------------------------------------------------
 #include "taskBle.h"
 #include "board.h"
+#include "itConfig.h"
 #include "bleConfig.h"
 
 #include "bluenrg1_stack.h"
@@ -82,8 +83,7 @@ void taskBleCode(__attribute__((unused)) void *parameters)
     }   
 }
 
-// static inline void bleIsrHandler()
-void Blue_Handler()
+void BLE_IT_HANDLER()
 {
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
     RAL_Isr();

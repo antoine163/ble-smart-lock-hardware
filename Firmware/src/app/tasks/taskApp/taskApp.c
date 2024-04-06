@@ -36,12 +36,51 @@
 #include <FreeRTOS.h>
 #include <task.h>
 
+// Global variables ------------------------------------------------------------
+
 // Implemented functions -------------------------------------------------------
 void taskAppCode(__attribute__((unused)) void *parameters)
 {
+    boardEnableIo(true);
+
+    boardSetLightColor(COLOR_WHITE);
+    // boardSetLightDc(50);
+
+    float dc = 0;
+    bool inc = true;
     while (1)
     {
-        boardLedToggel();
-        vTaskDelay( 200 / portTICK_PERIOD_MS );
-    }   
+
+        if (inc)
+            dc += 0.1;
+        else
+            dc -= 0.1;
+
+        if (dc >= 100. || dc <= 0.)
+            inc ^= true;
+
+        boardSetLightDc(dc);
+
+        vTaskDelay(20 / portTICK_PERIOD_MS);
+    }
+
+    while (1)
+    {
+        boardLedOn();
+        // boardSetLightColor(COLOR_BLACK);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        boardLedOff();
+
+        // boardSetLightColor(COLOR_RED);
+        // vTaskDelay( 1000 / portTICK_PERIOD_MS );
+
+        // boardSetLightColor(COLOR_GREEN);
+        // vTaskDelay( 1000 / portTICK_PERIOD_MS );
+
+        // boardSetLightColor(COLOR_BLUE);
+        // vTaskDelay( 1000 / portTICK_PERIOD_MS );
+
+        // boardSetLightColor(COLOR_WHITE);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
 }

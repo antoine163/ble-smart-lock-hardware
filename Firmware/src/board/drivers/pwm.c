@@ -25,62 +25,87 @@
 /**
  * @file pwm.c
  * @author antoine163
- * @date 24.02.2024
+ * @date 06-04-2024
  * @brief PWM driver
  */
 
 // Include ---------------------------------------------------------------------
-#include "adc.h"
+#include "pwm.h"
+
+#include <stddef.h>
 
 #include "BlueNRG1_sysCtrl.h"
-#include "BlueNRG1_mft.h"
 
 // Implemented functions -------------------------------------------------------
-int pwm_init()
+int pwm_init(pwm_t *dev, MFT_Type *const periph)
 {
+    if (MFT1 == periph)
+        SysCtrl_PeripheralClockCmd(CLOCK_PERIPH_MTFX1, ENABLE);
+    else if (MFT2 == periph)
+        SysCtrl_PeripheralClockCmd(CLOCK_PERIPH_MTFX2, ENABLE);
+    else
+        return -1;
+
+    dev->periph = periph;
+    dev->period = 0;
+    return 0;
+}
+
+int pwm_deinit(pwm_t *dev)
+{
+    if (MFT1 == dev->periph)
+        SysCtrl_PeripheralClockCmd(CLOCK_PERIPH_MTFX1, DISABLE);
+    else if (MFT2 == dev->periph)
+        SysCtrl_PeripheralClockCmd(CLOCK_PERIPH_MTFX2, DISABLE);
+    else
+        return -1;
+
+    MFT_DeInit(dev->periph);
+    dev->periph = NULL;
+    return 0;
+}
+
+int pwm_config(pwm_t *dev, unsigned int frequency)
+{
+    // Compute prescaler and period
+    unsigned int prescaler = SYST_CLOCK / ( frequency * 256U );
+    if (0 == prescaler)
+        prescaler = 1;
+    else if (256U < prescaler)
+        prescaler = 256U;
+    dev->period = SYST_CLOCK / ( prescaler * frequency );
+
+    /* MFTx configuration */
     MFT_InitType timer_init;
-
-    SysCtrl_PeripheralClockCmd(CLOCK_PERIPH_MTFX1 | CLOCK_PERIPH_MTFX2, ENABLE);
-
     MFT_StructInit(&timer_init);
-
     timer_init.MFT_Mode = MFT_MODE_1;
-
-#if (HS_SPEED_XTAL == HS_SPEED_XTAL_32MHZ)
-    timer_init.MFT_Prescaler = 160 - 1; /* 5 us clock */
-#elif (HS_SPEED_XTAL == HS_SPEED_XTAL_16MHZ)
-    timer_init.MFT_Prescaler = 80 - 1; /* 5 us clock */
-#endif
-
-    /* MFT1 configuration */
     timer_init.MFT_Clock1 = MFT_PRESCALED_CLK;
     timer_init.MFT_Clock2 = MFT_NO_CLK;
-    timer_init.MFT_CRA = 1000 - 1; /* 5 ms positive duration */
-    timer_init.MFT_CRB = 1000 - 1; /* 5 ms negative duration */
-    MFT_Init(MFT1, &timer_init);
+    timer_init.MFT_Prescaler = prescaler -1;
+    timer_init.MFT_CRA = 0;
+    timer_init.MFT_CRB = dev->period -1;
+    MFT_Init(dev->periph, &timer_init);
 
-    /* Connect PWM output from MFT1 to TnA pin (PWM0) */
-    MFT_TnXEN(MFT1, MFT_TnA, ENABLE);
+    /* Connect PWMx output from MFTx to TnA pin */
+    MFT_TnXEN(dev->periph, MFT_TnA, ENABLE);
 
     /* Start MFT timers */
-    MFT_Cmd(MFT1, ENABLE);
+    MFT_Cmd(dev->periph, ENABLE);
 
     return 0;
 }
 
-int pwm_deinit()
+void pwm_setDc(pwm_t *dev, float duty_cycle)
 {
-    MFT_TnXEN(MFT1, MFT_TnA, DISABLE);
-    MFT_DeInit(MFT1);
-    return 0;
-}
+    // Board duty cycle from 0% to 100%
+    if (duty_cycle < 0.)
+        duty_cycle = 0.;
+    else if (duty_cycle > 100.)
+        duty_cycle = 100.;
 
-void pwm_setDutyCycle(float duty_cycle)
-{
-    uint32_t tmcra = (duty_cycle * 2000.) / 100.;
-    uint32_t tmcrb = 2000UL - tmcra;
+    uint32_t tmcra = (duty_cycle * dev->period) / 100.;
+    uint32_t tmcrb = dev->period - tmcra;
 
-
-    MFT1->TNCRA = (uint16_t)tmcra;
-    MFT1->TNCRB = (uint16_t)tmcrb;
+    dev->periph->TNCRA = (uint16_t)tmcra;
+    dev->periph->TNCRB = (uint16_t)tmcrb;
 }

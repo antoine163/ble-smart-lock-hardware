@@ -25,8 +25,8 @@
 /**
  * @file uart.c
  * @author antoine163
- * @date 15.07.2023
- * @brief It is a UART driver
+ * @date 01-04-2024
+ * @brief UART driver
  */
 
 // Include ---------------------------------------------------------------------
@@ -36,6 +36,11 @@
 #include "BlueNRG1_gpio.h"
 #include "misc.h"
 
+#include "itConfig.h"
+
+// Global variables ------------------------------------------------------------
+static uart_t *_usart_dev = NULL;
+
 // Implemented functions -------------------------------------------------------
 int uart_init(uart_t *dev,
               UART_Type *const periph,
@@ -43,6 +48,7 @@ int uart_init(uart_t *dev,
               uint8_t *bufRx, size_t sizeBufRx)
 {
     dev->periph = periph;
+    _usart_dev = dev;
 
     fifo_init(&dev->fifoTx, bufTx, sizeBufTx);
     fifo_init(&dev->fifoRx, bufRx, sizeBufRx);
@@ -51,10 +57,10 @@ int uart_init(uart_t *dev,
     SysCtrl_PeripheralClockCmd(CLOCK_PERIPH_UART, ENABLE);
 
     // Enable UART Interrupt
-    NVIC_InitType nvicConfig;
-    nvicConfig.NVIC_IRQChannel = UART_IRQn;
-    nvicConfig.NVIC_IRQChannelPreemptionPriority = LOW_PRIORITY;
-    nvicConfig.NVIC_IRQChannelCmd = ENABLE;
+    NVIC_InitType nvicConfig = {
+        .NVIC_IRQChannel = UART_IRQn,
+        .NVIC_IRQChannelPreemptionPriority = UART_IT_PRIORITY,
+        .NVIC_IRQChannelCmd = ENABLE};
     NVIC_Init(&nvicConfig);
 
     return 0;
@@ -63,15 +69,16 @@ int uart_init(uart_t *dev,
 int uart_deinit(__attribute__((unused)) uart_t *dev)
 {
     // Disable UART Interrupt
-    NVIC_InitType nvicConfig;
-    nvicConfig.NVIC_IRQChannel = UART_IRQn;
-    nvicConfig.NVIC_IRQChannelPreemptionPriority = LOW_PRIORITY;
-    nvicConfig.NVIC_IRQChannelCmd = DISABLE;
+    NVIC_InitType nvicConfig = {
+        .NVIC_IRQChannel = UART_IRQn,
+        .NVIC_IRQChannelCmd = DISABLE};
     NVIC_Init(&nvicConfig);
 
+    // De init uart and disable clock
     UART_DeInit();
     SysCtrl_PeripheralClockCmd(CLOCK_PERIPH_UART, DISABLE);
 
+    _usart_dev = NULL;
     dev = NULL;
     return 0;
 }
@@ -133,9 +140,9 @@ int uart_config(uart_t *dev,
 
     uartConf.UART_Mode = 0;
     if (fifo_size(&dev->fifoTx) != 0)
-         uartConf.UART_Mode |= UART_Mode_Tx;
+        uartConf.UART_Mode |= UART_Mode_Tx;
     if (fifo_size(&dev->fifoRx) != 0)
-         uartConf.UART_Mode |= UART_Mode_Rx;
+        uartConf.UART_Mode |= UART_Mode_Rx;
 
     uartConf.UART_HardwareFlowControl = UART_HardwareFlowControl_None;
     uartConf.UART_FifoEnable = ENABLE;
@@ -229,4 +236,49 @@ int uart_read(uart_t *dev, void *buf, unsigned int nbyte)
     UART_ITConfig(UART_IT_RX, ENABLE);
 
     return n;
+}
+
+// ISR handler -----------------------------------------------------------------
+static inline void _uartIsrHandler(uart_t *dev)
+{
+    // -- Manage transmit data --
+    // The UART Tx FiFo is empty and the interrupt is enable ?
+    if ((UART_GetITStatus(UART_IT_TXFE) == SET) &&
+        (READ_BIT(UART->IMSC, UART_IT_TXFE) != 0))
+    {
+        UART_ClearITPendingBit(UART_IT_TXFE);
+
+        // Transfer data Fifo to Uart Fifo
+        while ((UART_GetFlagStatus(UART_FLAG_TXFF) == RESET) &&
+               !fifo_isEmpty(&dev->fifoTx))
+        {
+            uint16_t byte = 0;
+            FIFO_POP_BYTE((&dev->fifoTx), (uint8_t *)&byte);
+            UART_SendData(byte);
+        }
+
+        // Disable UART Tx FiFo empty interrupt if the data Tx FiFo is empty.
+        if (fifo_isEmpty(&dev->fifoTx))
+            UART_ITConfig(UART_IT_TXFE, DISABLE);
+    }
+
+    // -- Manage receive data --
+    // The UART Rx FiFo is full and the interrupt is enable ?
+    if ((UART_GetITStatus(UART_IT_RX) == SET) &&
+        (READ_BIT(UART->IMSC, UART_IT_RX) != 0))
+    {
+        UART_ClearITPendingBit(UART_IT_RX);
+
+        // Transfer Uart Fifo to data Fifo
+        while ((UART_GetFlagStatus(UART_FLAG_RXFE) == RESET))
+        {
+            uint16_t byte = UART_ReceiveData();
+            FIFO_PUSH_BYTE((&dev->fifoRx), (uint8_t)byte);
+        }
+    }
+}
+
+void UART_IT_HANDLER()
+{
+    _uartIsrHandler(_usart_dev);
 }

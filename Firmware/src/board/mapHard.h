@@ -45,16 +45,10 @@
 
 // LIGHT
 #define LIGHT_RED_PIN           GPIO_Pin_0
-#define LIGHT_RED_MODE          GPIO_Output
-
 #define LIGHT_BLUE_PIN          GPIO_Pin_1
-#define LIGHT_BLUE_MODE         GPIO_Output
-
 #define LIGHT_GREEN_PIN         GPIO_Pin_2
-#define LIGHT_GREEN_MODE        GPIO_Output
-
 #define LIGHT_WHITE_PIN         GPIO_Pin_3
-#define LIGHT_WHITE_MODE        GPIO_Output
+#define LIGHT_MODE              GPIO_Output
 
 #define LIGHT_PWM_PIN           GPIO_Pin_4
 #define LIGHT_PWM_MODE_OUT      GPIO_Output

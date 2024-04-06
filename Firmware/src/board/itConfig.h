@@ -22,21 +22,21 @@
  * SOFTWARE.
  */
 
+/**
+ * @file itConfig.h
+ * @author antoine163
+ * @date 04-04-2024
+ * @brief Configuration of interruption
+ */
+
 #ifndef BLUENRG_IT_H
 #define BLUENRG_IT_H
 
-// Includes --------------------------------------------------------------------
-#include "drivers/uart.h"
-#include "tasks/taskBle/taskBle.h"
+// Define ----------------------------------------------------------------------
+#define BLE_IT_HANDLER      Blue_Handler
 
-// Implemented functions ---------------------------------------------------------
+#define UART_IT_HANDLER     UART_Handler
+#define UART_IT_PRIORITY    LOW_PRIORITY
 
-extern uart_t _serial;
-void UART_Handler()
-{
-    uartIsrHandler(&_serial);
-}
-
-// Blue_Handler see taskBle.c
 
 #endif // BLUENRG_IT_H

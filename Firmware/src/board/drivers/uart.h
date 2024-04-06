@@ -26,7 +26,7 @@
  * @file uart.h
  * @author antoine163
  * @date 01-04-2024
- * @brief This is a uart driver
+ * @brief UART driver
  */
 
 #ifndef UART_H
@@ -90,57 +90,13 @@ int uart_init(uart_t *dev,
               UART_Type *const periph,
               uint8_t *bufTx, size_t sizeBufTx,
               uint8_t *bufRx, size_t sizeBufRx);
-
 int uart_deinit(uart_t *dev);
-
 int uart_config(uart_t *dev,
                 uart_baudrate_t baudrate,
                 uart_databits_t databit,
                 uart_parity_t parity,
                 uart_stopbit_t stopbit);
-
 int uart_write(uart_t *dev, void const *buf, unsigned int nbyte);
-
 int uart_read(uart_t *dev, void *buf, unsigned int nbyte);
-
-// ISR handler -----------------------------------------------------------------
-static inline void uartIsrHandler(uart_t *dev)
-{
-    // -- Manage transmit data --
-    // The UART Tx FiFo is empty and the interrupt is enable ?
-    if ((UART_GetITStatus(UART_IT_TXFE) == SET) &&
-        (READ_BIT(UART->IMSC, UART_IT_TXFE) != 0))
-    {
-        UART_ClearITPendingBit(UART_IT_TXFE);
-
-        // Transfer data Fifo to Uart Fifo
-        while ((UART_GetFlagStatus(UART_FLAG_TXFF) == RESET) &&
-               !fifo_isEmpty(&dev->fifoTx))
-        {
-            uint16_t byte = 0;
-            FIFO_POP_BYTE((&dev->fifoTx), (uint8_t *)&byte);
-            UART_SendData(byte);
-        }
-
-        // Disable UART Tx FiFo empty interrupt if the data Tx FiFo is empty.
-        if (fifo_isEmpty(&dev->fifoTx))
-            UART_ITConfig(UART_IT_TXFE, DISABLE);
-    }
-
-    // -- Manage receive data --
-    // The UART Rx FiFo is full and the interrupt is enable ?
-    if ((UART_GetITStatus(UART_IT_RX) == SET) &&
-        (READ_BIT(UART->IMSC, UART_IT_RX) != 0))
-    {
-        UART_ClearITPendingBit(UART_IT_RX);
-
-        // Transfer Uart Fifo to data Fifo
-        while ((UART_GetFlagStatus(UART_FLAG_RXFE) == RESET))
-        {
-            uint16_t byte = UART_ReceiveData();
-            FIFO_PUSH_BYTE((&dev->fifoRx), (uint8_t)byte);
-        }
-    }
-}
 
 #endif // UART_H
