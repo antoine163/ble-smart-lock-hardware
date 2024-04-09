@@ -2,17 +2,17 @@
  * The MIT License (MIT)
  *
  * Copyright (c) 2024 antoine163
- *
+ * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- *
+ * 
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- *
+ * 
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,47 +23,20 @@
  */
 
 /**
- * @file tasks.h
+ * @file taskLight.h
  * @author antoine163
- * @date 02-04-2024
- * @brief All tasks of this firmware
+ * @date 07-04-2024
+ * @brief Task to manage ambient light and lighting
  */
 
-#ifndef TASKS_H
-#define TASKS_H
+#ifndef TASK_LIGHT_H
+#define TASK_LIGHT_H
 
 // Include ---------------------------------------------------------------------
-#include "taskBle/taskBle.h"
-#include "taskApp/taskApp.h"
-#include "taskLight/taskLight.h"
-
-// Define ----------------------------------------------------------------------
-
-/**
- * @brief Declaration the list of static tasks.
- *
- * The define @b STATIC_TASK() is defined an used in tasks.c to creat all static
- * tasks.
- *
- * Prototype of STATIC_TASK(task_code, name, stack_size, parameters, priority)
- * The parameters of STATIC_TASK match with the parameters of xTaskCreateStatic()
- * of FreeRTOS.
- * @p taskCode -> pxTaskCode
- * @p name -> pcName
- * @p stackDepth -> ulStackDepth
- * @p parameters -> pvParametersde
- * @p priority -> uxPriority
- */
-#define TASKS_STATIC_LIST                                                                      \
-    STATIC_TASK(taskBleCode, "Ble", configMINIMAL_STACK_SIZE * 10, NULL, tskIDLE_PRIORITY + 2) \
-    STATIC_TASK(taskAppCode, "App", configMINIMAL_STACK_SIZE * 2, NULL, tskIDLE_PRIORITY + 1)  \
-    STATIC_TASK(taskLightCode, "Light", configMINIMAL_STACK_SIZE * 2, NULL, tskIDLE_PRIORITY + 1)
+#include "board.h"
 
 // Prototype functions ---------------------------------------------------------
+void taskLightCode(void *parameters);
+void taskLightSetColor(color_t color, unsigned int transTime);
 
-/**
- * @brief Create all static tasks of this firmware.
- */
-void tasksStaticCreate();
-
-#endif // TASKS_H
+#endif // TASK_LIGHT_H

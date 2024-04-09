@@ -41,7 +41,7 @@
 // Enum ------------------------------------------------------------------------
 typedef enum
 {
-    COLOR_BLACK,
+    COLOR_OFF,
     COLOR_RED,
     COLOR_GREEN,
     COLOR_BLUE,

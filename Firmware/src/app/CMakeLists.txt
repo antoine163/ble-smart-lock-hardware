@@ -8,6 +8,7 @@ target_sources(app PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/tasks/tasks.c
     ${CMAKE_CURRENT_SOURCE_DIR}/tasks/taskApp/taskApp.c
     ${CMAKE_CURRENT_SOURCE_DIR}/tasks/taskBle/taskBle.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/tasks/taskLight/taskLight.c
     ${CMAKE_CURRENT_SOURCE_DIR}/tasks/taskBle/bleEvents.c
     ${CMAKE_CURRENT_SOURCE_DIR}/syscall.c
 )

@@ -74,8 +74,8 @@ int pwm_config(pwm_t *dev, unsigned int frequency)
     else if (256U < prescaler)
         prescaler = 256U;
     dev->period = SYST_CLOCK / ( prescaler * frequency );
-
-    /* MFTx configuration */
+ 
+    // MFTx configuration
     MFT_InitType timer_init;
     MFT_StructInit(&timer_init);
     timer_init.MFT_Mode = MFT_MODE_1;
@@ -86,10 +86,10 @@ int pwm_config(pwm_t *dev, unsigned int frequency)
     timer_init.MFT_CRB = dev->period -1;
     MFT_Init(dev->periph, &timer_init);
 
-    /* Connect PWMx output from MFTx to TnA pin */
+    // Connect PWMx output from MFTx to TnA pin
     MFT_TnXEN(dev->periph, MFT_TnA, ENABLE);
 
-    /* Start MFT timers */
+    // Start MFT timers
     MFT_Cmd(dev->periph, ENABLE);
 
     return 0;
@@ -106,6 +106,7 @@ void pwm_setDc(pwm_t *dev, float duty_cycle)
     uint32_t tmcra = (duty_cycle * dev->period) / 100.;
     uint32_t tmcrb = dev->period - tmcra;
 
+    dev->periph->TNCNT1 = 0; // Reste counter
     dev->periph->TNCRA = (uint16_t)tmcra;
     dev->periph->TNCRB = (uint16_t)tmcrb;
 }

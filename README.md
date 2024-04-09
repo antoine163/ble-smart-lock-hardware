@@ -22,8 +22,8 @@ Il est constitué de 4 parties:
 | BLE           | Serrure | Éclairage ambience  | Éclairage extérieur   | Voyant Bouton |
 | ------------- | :-----: | :------:            | :------:              | :----:        |
 | Non connecté  | Fermé   | Éteint              | Éteint                | Éteint        |
-| Connecté      | Fermé   | Bleu                | Éteint                | **Allumé**    |
-| Déverrouillé  | Fermé   | Vert                | Éteint                | **Allumé**    | 
+| Connecté      | Fermé   | Vert                | Éteint                | Éteint        |
+| Déverrouillé  | Fermé   | Bleu                | Éteint                | **Allumé**    | 
 ||                              
 | Non connecté  | Ouvert  | Rouge               | Éteint                | Éteint        |
 | Connecté      | Ouvert  | **Blanc**           | **Allumé**            | Éteint        |

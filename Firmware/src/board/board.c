@@ -48,8 +48,9 @@ typedef struct
     StaticSemaphore_t serialMutexBuffer;
 
     // Light section
-    pwm_t pwm;
-    color_t color;
+    pwm_t lightPwm;
+    color_t lightColor;
+    float lightDc;
 
     // Sensor section
     // adc_t adc;
@@ -64,8 +65,8 @@ static void _boardInitAdc();
 // Global variables ------------------------------------------------------------
 board_t _board = {
     .serialSemaphore = NULL,
-    .color = COLOR_BLACK
-};
+    .lightColor = COLOR_OFF,
+    .lightDc = 0.};
 
 // Implemented functions -------------------------------------------------------
 
@@ -110,66 +111,74 @@ void boardEnableIo(bool enable)
 
 void boardSetLightColor(color_t color)
 {
-    // TMP >
-    GPIO_InitType GPIO_InitStruct;
-    GPIO_StructInit(&GPIO_InitStruct);
-    GPIO_InitStruct.GPIO_Pin = LIGHT_PWM_PIN;
-    GPIO_InitStruct.GPIO_Mode = LIGHT_PWM_MODE_PWM;
-    GPIO_ResetBits(GPIO_InitStruct.GPIO_Pin);
-    GPIO_Init(&GPIO_InitStruct);
-    // TMP <
+    color_t lastColor = _board.lightColor;
+    _board.lightColor = color;
+
+    // Off all color
+    GPIO_ResetBits(LIGHT_RED_PIN |
+                   LIGHT_BLUE_PIN |
+                   LIGHT_GREEN_PIN |
+                   LIGHT_WHITE_PIN);
+
+    // Set PWM duty cycle
+    boardSetLightDc(_board.lightDc);
+
+    // On color
     switch (color)
     {
-    case COLOR_BLACK:
+    case COLOR_OFF:
     {
-        GPIO_ResetBits(LIGHT_PWM_PIN);
-
-        GPIO_ResetBits(LIGHT_RED_PIN | LIGHT_BLUE_PIN | LIGHT_GREEN_PIN | LIGHT_WHITE_PIN);
+        // Disable PWM Pin
+        GPIO_InitType GPIO_InitStruct;
+        GPIO_StructInit(&GPIO_InitStruct);
+        GPIO_InitStruct.GPIO_Pin = LIGHT_PWM_PIN;
+        GPIO_InitStruct.GPIO_Mode = LIGHT_PWM_MODE_OUT;
+        GPIO_Init(&GPIO_InitStruct);
         break;
-    }    
+    }
     case COLOR_RED:
     {
-        GPIO_ResetBits(LIGHT_PWM_PIN);
-
-        GPIO_ResetBits(LIGHT_BLUE_PIN | LIGHT_GREEN_PIN | LIGHT_WHITE_PIN);
         GPIO_SetBits(LIGHT_RED_PIN);
         break;
     }
     case COLOR_GREEN:
     {
-        GPIO_ResetBits(LIGHT_PWM_PIN);
-
-        GPIO_ResetBits(LIGHT_RED_PIN | LIGHT_GREEN_PIN | LIGHT_WHITE_PIN);
         GPIO_SetBits(LIGHT_GREEN_PIN);
         break;
     }
     case COLOR_BLUE:
     {
-        GPIO_ResetBits(LIGHT_PWM_PIN);
-
-        GPIO_ResetBits(LIGHT_RED_PIN | LIGHT_GREEN_PIN | LIGHT_WHITE_PIN);
         GPIO_SetBits(LIGHT_BLUE_PIN);
         break;
     }
     case COLOR_WHITE:
     {
-        GPIO_SetBits(LIGHT_PWM_PIN);
-
-        GPIO_ResetBits(LIGHT_RED_PIN | LIGHT_BLUE_PIN | LIGHT_GREEN_PIN);
         GPIO_SetBits(LIGHT_WHITE_PIN);
         break;
     }
     }
 
-    _board.color = color;
+    if ((lastColor == COLOR_OFF) &&
+        (color != COLOR_OFF))
+    {
+        // Enable PWM Pin
+        GPIO_InitType GPIO_InitStruct;
+        GPIO_StructInit(&GPIO_InitStruct);
+        GPIO_InitStruct.GPIO_Pin = LIGHT_PWM_PIN;
+        GPIO_InitStruct.GPIO_Mode = LIGHT_PWM_MODE_PWM;
+        GPIO_Init(&GPIO_InitStruct);
+    }
 }
 
 void boardSetLightDc(float dc)
 {
-    if (_board.color == COLOR_WHITE)
-        pwm_setDc(&_board.pwm, dc);
+    // Set duty cycle
+    if (_board.lightColor == COLOR_WHITE)
+        pwm_setDc(&_board.lightPwm, dc);
     else
-        pwm_setDc(&_board.pwm, 100.-dc);
+        pwm_setDc(&_board.lightPwm, 100. - dc);
+
+    _board.lightDc = dc;
 }
 
 // Implemented static functions ------------------------------------------------
@@ -254,8 +263,8 @@ void _boardInitUart()
 void _boardInitPwm()
 {
     // Init pwm
-    pwm_init(&_board.pwm, MFT1);
-    pwm_config(&_board.pwm, 100);
+    pwm_init(&_board.lightPwm, MFT1);
+    pwm_config(&_board.lightPwm, 60);
 }
 
 void _boardInitAdc()

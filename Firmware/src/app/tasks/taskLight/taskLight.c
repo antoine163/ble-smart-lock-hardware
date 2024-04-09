@@ -23,16 +23,15 @@
  */
 
 /**
- * @file taskApp.h
+ * @file taskLight.h
  * @author antoine163
- * @date 03-04-2024
- * @brief Task of the application
+ * @date 07-04-2024
+ * @brief Task to manage ambient light and lighting
  */
 
 // Include ---------------------------------------------------------------------
-#include "taskApp.h"
+#include "taskLight.h"
 #include "board.h"
-#include "tasks/taskLight/taskLight.h"
 
 #include <FreeRTOS.h>
 #include <task.h>
@@ -43,21 +42,36 @@
 
 
 // Implemented functions -------------------------------------------------------
-void taskAppCode(__attribute__((unused)) void *parameters)
+void taskLightCode(__attribute__((unused)) void *parameters)
 {
     boardEnableIo(true);
+    // boardSetLightColor(COLOR_RED);
+    boardSetLightDc(1);
 
+    // vTaskDelay(200 / portTICK_PERIOD_MS);
+    boardSetLightColor(COLOR_WHITE);
+    
+    
     while (1)
     {
-        // boardLedOn();
-        // vTaskDelay(500 / portTICK_PERIOD_MS);
-        // boardLedOff();
-        // vTaskDelay(500 / portTICK_PERIOD_MS);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        boardSetLightColor(COLOR_RED);
 
-        // taskLightSetColor(COLOR_WHITE, 1500);
-        // vTaskDelay(3000 / portTICK_PERIOD_MS);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        boardSetLightColor(COLOR_GREEN);
 
-        // taskLightSetColor(COLOR_OFF, 1500);
-        // vTaskDelay(3000 / portTICK_PERIOD_MS);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        boardSetLightColor(COLOR_BLUE);
+
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        boardSetLightColor(COLOR_WHITE);
+
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        boardSetLightColor(COLOR_OFF);
     }
+}
+
+void taskLightSetColor(color_t color, unsigned int transTime)
+{
+
 }
