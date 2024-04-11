@@ -47,17 +47,22 @@ void taskAppCode(__attribute__((unused)) void *parameters)
 {
     boardEnableIo(true);
 
+    boardLedOn();
+    vTaskDelay(100 / portTICK_PERIOD_MS);
+    boardLedOff();
     while (1)
     {
-        // boardLedOn();
-        // vTaskDelay(500 / portTICK_PERIOD_MS);
-        // boardLedOff();
-        // vTaskDelay(500 / portTICK_PERIOD_MS);
 
-        // taskLightSetColor(COLOR_WHITE, 1500);
-        // vTaskDelay(3000 / portTICK_PERIOD_MS);
+        taskLightSetColor(COLOR_RED, 0);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        taskLightSetColor(COLOR_GREEN, 0);
+        vTaskDelay(1000  / portTICK_PERIOD_MS);
+        taskLightSetColor(COLOR_BLUE, 0);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        taskLightSetColor(COLOR_WHITE, 0);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
 
-        // taskLightSetColor(COLOR_OFF, 1500);
-        // vTaskDelay(3000 / portTICK_PERIOD_MS);
+        taskLightSetColor(COLOR_OFF, 0 );
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 }

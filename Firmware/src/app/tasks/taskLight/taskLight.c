@@ -35,43 +35,50 @@
 
 #include <FreeRTOS.h>
 #include <task.h>
+#include <queue.h>
+
+// Define ----------------------------------------------------------------------
+#define _MSG_QUEUE_LENGTH 8
+
+// Struct ----------------------------------------------------------------------
+typedef struct
+{
+    color_t color;
+    unsigned int transTime;
+} taskLightMsg_t;
+
+typedef struct
+{
+    QueueHandle_t msgQueue;
+    StaticQueue_t msgStaticQueue;
+    uint8_t msgQueueStorageArea[sizeof(taskLightMsg_t) * _MSG_QUEUE_LENGTH];
+} taskLight_t;
 
 // Global variables ------------------------------------------------------------
-
-// Implemented functions -------------------------------------------------------
-
+static taskLight_t _taskLight;
 
 // Implemented functions -------------------------------------------------------
 void taskLightCode(__attribute__((unused)) void *parameters)
 {
-    boardEnableIo(true);
-    // boardSetLightColor(COLOR_RED);
-    boardSetLightDc(1);
+    taskLightMsg_t msg;
+    TickType_t tickToWait = portMAX_DELAY;
 
-    // vTaskDelay(200 / portTICK_PERIOD_MS);
-    boardSetLightColor(COLOR_WHITE);
-    
-    
-    while (1)
+    _taskLight.msgQueue = xQueueCreateStatic(_MSG_QUEUE_LENGTH,
+                                             sizeof(taskLightMsg_t),
+                                             _taskLight.msgQueueStorageArea,
+                                             &_taskLight.msgStaticQueue);
+
+    while (xQueueReceive(_taskLight.msgQueue, &msg, portMAX_DELAY))
     {
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-        boardSetLightColor(COLOR_RED);
-
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-        boardSetLightColor(COLOR_GREEN);
-
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-        boardSetLightColor(COLOR_BLUE);
-
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-        boardSetLightColor(COLOR_WHITE);
-
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-        boardSetLightColor(COLOR_OFF);
+        boardSetLightColor(msg.color);
+        boardSetLightDc(100);
     }
 }
 
 void taskLightSetColor(color_t color, unsigned int transTime)
 {
-
+    taskLightMsg_t msg = {
+        color = color,
+        transTime = transTime};
+    xQueueSend(_taskLight.msgQueue, &msg, 0);
 }

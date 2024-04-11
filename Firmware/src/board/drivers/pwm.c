@@ -106,7 +106,7 @@ void pwm_setDc(pwm_t *dev, float duty_cycle)
     uint32_t tmcra = (duty_cycle * dev->period) / 100.;
     uint32_t tmcrb = dev->period - tmcra;
 
-    dev->periph->TNCNT1 = 0; // Reste counter
+    // dev->periph->TNCNT1 = 0; // Reste counter
     dev->periph->TNCRA = (uint16_t)tmcra;
     dev->periph->TNCRB = (uint16_t)tmcrb;
 }
