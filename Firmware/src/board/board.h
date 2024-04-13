@@ -57,6 +57,7 @@ void boardEnableIo(bool enable);
 void boardSetLightColor(color_t color);
 void boardSetLightDc(float dc);
 
+float boardGetBrightness();
 
 // Prototype static functions --------------------------------------------------
 static inline void boardLedOn()

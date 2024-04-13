@@ -33,7 +33,6 @@
 #include "pwm.h"
 
 #include <stddef.h>
-
 #include "BlueNRG1_sysCtrl.h"
 
 // Implemented functions -------------------------------------------------------

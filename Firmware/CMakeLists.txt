@@ -59,6 +59,8 @@ add_compile_options(
 
     $<$<COMPILE_LANGUAGE:ASM>:-x>
     $<$<COMPILE_LANGUAGE:ASM>:assembler-with-cpp>
+
+    $<$<CONFIG:Debug>:-g3>
 )
 
 # Link options

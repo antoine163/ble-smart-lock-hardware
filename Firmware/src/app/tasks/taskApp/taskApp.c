@@ -50,19 +50,26 @@ void taskAppCode(__attribute__((unused)) void *parameters)
     boardLedOn();
     vTaskDelay(100 / portTICK_PERIOD_MS);
     boardLedOff();
+
+    taskLightSetColor(COLOR_GREEN, 0);
     while (1)
     {
+        // taskLightSetColor(COLOR_RED, 0);
+        // vTaskDelay(1000 / portTICK_PERIOD_MS);
+        // taskLightSetColor(COLOR_GREEN, 0);
+        // vTaskDelay(1000  / portTICK_PERIOD_MS);
+        // taskLightSetColor(COLOR_BLUE, 0);
+        // vTaskDelay(1000 / portTICK_PERIOD_MS);
+        // taskLightSetColor(COLOR_WHITE, 0);
+        // vTaskDelay(1000 / portTICK_PERIOD_MS);
 
-        taskLightSetColor(COLOR_RED, 0);
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-        taskLightSetColor(COLOR_GREEN, 0);
-        vTaskDelay(1000  / portTICK_PERIOD_MS);
-        taskLightSetColor(COLOR_BLUE, 0);
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-        taskLightSetColor(COLOR_WHITE, 0);
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        // taskLightSetColor(COLOR_OFF, 0 );
+        // vTaskDelay(1000 / portTICK_PERIOD_MS);
 
-        taskLightSetColor(COLOR_OFF, 0 );
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+
+        int val = boardGetBrightness();
+        boardPrintf("Brightness:%i\r\n", val);
+
+        vTaskDelay(500 / portTICK_PERIOD_MS);
     }
 }

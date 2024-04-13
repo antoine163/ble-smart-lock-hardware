@@ -53,7 +53,7 @@ typedef struct
     float lightDc;
 
     // Sensor section
-    // adc_t adc;
+    adc_t sensorAdc;
 } board_t;
 
 // Prototype static functions --------------------------------------------------
@@ -181,6 +181,13 @@ void boardSetLightDc(float dc)
     _board.lightDc = dc;
 }
 
+float boardGetBrightness()
+{
+    adc_config(&_board.sensorAdc, ADC_CH_PIN1);
+    float val = adc_convert_voltage(&_board.sensorAdc);
+    return 100.0f - val * 100.0f / 3.3f;
+}
+
 // Implemented static functions ------------------------------------------------
 
 void _boardInitGpio()
@@ -270,4 +277,6 @@ void _boardInitPwm()
 void _boardInitAdc()
 {
     // Init adc
+    adc_init(&_board.sensorAdc, ADC);
+    adc_config(&_board.sensorAdc, ADC_CH_PIN1);
 }

@@ -33,10 +33,9 @@
 #define BLUENRG_IT_H
 
 // Define ----------------------------------------------------------------------
-#define BLE_IT_HANDLER      Blue_Handler
+#define BLE_IT_HANDLER Blue_Handler
 
-#define UART_IT_HANDLER     UART_Handler
-#define UART_IT_PRIORITY    LOW_PRIORITY
-
+#define UART_IT_HANDLER UART_Handler
+#define UART_IT_PRIORITY LOW_PRIORITY
 
 #endif // BLUENRG_IT_H

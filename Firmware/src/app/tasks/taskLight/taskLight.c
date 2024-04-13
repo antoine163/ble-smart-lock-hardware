@@ -61,7 +61,6 @@ static taskLight_t _taskLight;
 void taskLightCode(__attribute__((unused)) void *parameters)
 {
     taskLightMsg_t msg;
-    TickType_t tickToWait = portMAX_DELAY;
 
     _taskLight.msgQueue = xQueueCreateStatic(_MSG_QUEUE_LENGTH,
                                              sizeof(taskLightMsg_t),

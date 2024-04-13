@@ -33,7 +33,6 @@
 #include "uart.h"
 
 #include "BlueNRG1_sysCtrl.h"
-#include "BlueNRG1_gpio.h"
 #include "misc.h"
 
 #include "itConfig.h"
@@ -53,7 +52,7 @@ int uart_init(uart_t *dev,
     fifo_init(&dev->fifoTx, bufTx, sizeBufTx);
     fifo_init(&dev->fifoRx, bufRx, sizeBufRx);
 
-    // Enable uart clk
+    // Enable UART clk
     SysCtrl_PeripheralClockCmd(CLOCK_PERIPH_UART, ENABLE);
 
     // Enable UART Interrupt
@@ -66,7 +65,7 @@ int uart_init(uart_t *dev,
     return 0;
 }
 
-int uart_deinit(__attribute__((unused)) uart_t *dev)
+int uart_deinit(uart_t *dev)
 {
     // Disable UART Interrupt
     NVIC_InitType nvicConfig = {
@@ -79,7 +78,7 @@ int uart_deinit(__attribute__((unused)) uart_t *dev)
     SysCtrl_PeripheralClockCmd(CLOCK_PERIPH_UART, DISABLE);
 
     _usart_dev = NULL;
-    dev = NULL;
+    dev->periph = NULL;
     return 0;
 }
 

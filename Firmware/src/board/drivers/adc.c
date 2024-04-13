@@ -32,48 +32,72 @@
 // Include ---------------------------------------------------------------------
 #include "adc.h"
 
+#include <stddef.h>
 #include "BlueNRG1_sysCtrl.h"
-#include "BlueNRG1_adc.h"
+
+// Global variables ------------------------------------------------------------
+static adc_t *_adc_dev = NULL;
 
 // Implemented functions -------------------------------------------------------
-ADC_InitType xADC_InitType;
 
-int adc_init()
+int adc_init(adc_t *dev, ADC_Type *const periph)
 {
+    dev->periph = periph;
+    dev->ch = ADC_CH_NONE;
+    _adc_dev = dev;
 
+    // Enable ADC clk
     SysCtrl_PeripheralClockCmd(CLOCK_PERIPH_ADC, ENABLE);
 
-    /* Configure ADC */
+    return 0;
+}
 
+int adc_deinit(adc_t *dev)
+{
+    // De init ADC and disable clock
+    ADC_DeInit();
+    SysCtrl_PeripheralClockCmd(CLOCK_PERIPH_ADC, DISABLE);
+
+    _adc_dev = NULL;
+    dev->periph = NULL;
+    return 0;
+}
+
+int adc_config(adc_t *dev, adcCh_t ch)
+{
+    dev->ch = ch;
+
+    // ADC configuration
+    ADC_InitType xADC_InitType;
     xADC_InitType.ADC_OSR = ADC_OSR_200;
-    xADC_InitType.ADC_Input = ADC_Input_AdcPin1;
+    xADC_InitType.ADC_Input = dev->ch;
     xADC_InitType.ADC_ConversionMode = ADC_ConversionMode_Single;
     xADC_InitType.ADC_ReferenceVoltage = ADC_ReferenceVoltage_0V6;
-    xADC_InitType.ADC_Attenuation = ADC_Attenuation_9dB54;
-
+    xADC_InitType.ADC_Attenuation = ADC_Attenuation_6dB02;
     ADC_Init(&xADC_InitType);
 
-    /* Enable auto offset correction */
+    // Enable auto offset correction
     ADC_AutoOffsetUpdate(ENABLE);
     ADC_Calibration(ENABLE);
 
     return 0;
 }
 
-int adc_deinit()
+float adc_convert_voltage(adc_t *dev)
 {
-    return 0;
-}
-
-float adcGet()
-{
-    ADC_Cmd(ENABLE);
-
-    while (ADC_GetFlagStatus(ADC_FLAG_EOC) == RESET)
+    // Fair 4 conversions semble contourner un peut l'Errata:
+    // "ADC does not work properly when a 32 MHz system clock is being used"
+    // A condition de ne pas changer de ADC_Input
+    for (unsigned int i = 0; i<4; i++)
     {
+        ADC_Cmd(ENABLE);
+
+        while (ADC_GetFlagStatus(ADC_FLAG_EOC) == RESET)
+        {
+        }
+
+        ADC_GetRawData();
     }
 
-    float adcValue = ADC_GetConvertedData(xADC_InitType.ADC_Input, xADC_InitType.ADC_ReferenceVoltage);
-    adcValue = ADC_CompensateOutputValue(adcValue) * 1000.0;
-    return adcValue;
+    return ADC_GetConvertedData(dev->ch, ADC_ReferenceVoltage_0V6);
 }
