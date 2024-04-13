@@ -54,6 +54,9 @@ typedef struct
 
     // Sensor section
     adc_t sensorAdc;
+
+    // Lock
+    bool loked;
 } board_t;
 
 // Prototype static functions --------------------------------------------------
@@ -66,7 +69,8 @@ static void _boardInitAdc();
 board_t _board = {
     .serialSemaphore = NULL,
     .lightColor = COLOR_OFF,
-    .lightDc = 0.};
+    .lightDc = 0.,
+    .loked = true};
 
 // Implemented functions -------------------------------------------------------
 
@@ -188,6 +192,61 @@ float boardGetBrightness()
     return 100.0f - val * 100.0f / 3.3f;
 }
 
+void boardLock()
+{
+    GPIO_InitType GPIO_InitStruct = {
+        .GPIO_Pin = LOCK_PIN,
+        .GPIO_Mode = LOCK_MODE_OUT,
+        .GPIO_HighPwr = DISABLE,
+        .GPIO_Pull = DISABLE};
+    GPIO_ResetBits(GPIO_InitStruct.GPIO_Pin);
+    GPIO_Init(&GPIO_InitStruct);
+
+    _board.loked = true;
+}
+
+void boardUnlock()
+{
+    GPIO_InitType GPIO_InitStruct = {
+        .GPIO_Pin = LOCK_PIN,
+        .GPIO_Mode = LOCK_MODE_IN,
+        .GPIO_HighPwr = DISABLE,
+        .GPIO_Pull = DISABLE};
+    GPIO_Init(&GPIO_InitStruct);
+
+    _board.loked = false;
+}
+
+bool boardIsLocked()
+{
+    return _board.loked;
+}
+
+void boardOpen()
+{
+    GPIO_InitType GPIO_InitStruct = {
+        .GPIO_Pin = LOCK_PIN,
+        .GPIO_Mode = LOCK_MODE_OUT,
+        .GPIO_HighPwr = DISABLE,
+        .GPIO_Pull = DISABLE};
+    GPIO_Init(&GPIO_InitStruct);
+
+    GPIO_SetBits(LOCK_PIN);
+    vTaskDelay(150 / portTICK_PERIOD_MS);
+    GPIO_ResetBits(LOCK_PIN);
+
+    if (_board.loked == false)
+    {
+        GPIO_InitStruct.GPIO_Mode = LOCK_MODE_IN;
+        GPIO_Init(&GPIO_InitStruct);
+    }
+}
+
+bool boardIsOpen()
+{
+    return (GPIO_ReadBit(OPENED_PIN) == Bit_SET) ? true : false;
+}
+
 // Implemented static functions ------------------------------------------------
 
 void _boardInitGpio()
@@ -211,7 +270,7 @@ void _boardInitGpio()
     // Init lock pin
     GPIO_InitStruct.GPIO_Pin = LOCK_PIN;
     GPIO_InitStruct.GPIO_Mode = LOCK_MODE_OUT;
-    GPIO_SetBits(GPIO_InitStruct.GPIO_Pin);
+    GPIO_ResetBits(GPIO_InitStruct.GPIO_Pin);
     GPIO_Init(&GPIO_InitStruct);
     // Init Led pin
     GPIO_InitStruct.GPIO_Pin = LED_PIN;

@@ -59,6 +59,13 @@ void boardSetLightDc(float dc);
 
 float boardGetBrightness();
 
+void boardLock();
+void boardUnlock();
+bool boardIsLocked();
+
+void boardOpen();
+bool boardIsOpen();
+
 // Prototype static functions --------------------------------------------------
 static inline void boardLedOn()
 {

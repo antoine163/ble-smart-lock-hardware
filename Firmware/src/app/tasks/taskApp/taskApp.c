@@ -51,7 +51,18 @@ void taskAppCode(__attribute__((unused)) void *parameters)
     vTaskDelay(100 / portTICK_PERIOD_MS);
     boardLedOff();
 
-    taskLightSetColor(COLOR_GREEN, 0);
+
+
+    // taskLightSetColor(COLOR_GREEN, 0);
+
+
+    boardUnlock();
+
+    // boardOpen();
+
+    // boardLock();
+
+
     while (1)
     {
         // taskLightSetColor(COLOR_RED, 0);
@@ -69,7 +80,11 @@ void taskAppCode(__attribute__((unused)) void *parameters)
 
         int val = boardGetBrightness();
         boardPrintf("Brightness:%i\r\n", val);
+        boardPrintf("Is open:%s\r\n", boardIsOpen()?"yes":"no");
 
         vTaskDelay(500 / portTICK_PERIOD_MS);
+
+        if (GPIO_ReadBit(BOND_PIN) == Bit_SET)
+            boardOpen();
     }
 }
