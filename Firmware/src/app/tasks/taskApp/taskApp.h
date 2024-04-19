@@ -32,7 +32,11 @@
 #ifndef TASK_APP_H
 #define TASK_APP_H
 
+// Include ---------------------------------------------------------------------
+#include <FreeRTOS.h>
+
 // Prototype functions ---------------------------------------------------------
 void taskAppCode(void *parameters);
+void taskAppSendMsgBond(BaseType_t* pxHigherPriorityTaskWoken);
 
 #endif // TASK_APP_H

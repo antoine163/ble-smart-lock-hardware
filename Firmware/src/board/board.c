@@ -24,7 +24,11 @@
 
 // Includes --------------------------------------------------------------------
 #include "board.h"
+
 #include "BlueNRG1_sysCtrl.h"
+#include "misc.h"
+
+#include "itConfig.h"
 
 #include "drivers/uart.h"
 #include "drivers/pwm.h"
@@ -310,6 +314,28 @@ void _boardInitGpio()
     GPIO_InitStruct.GPIO_Pin = UART_TX_PIN;
     GPIO_InitStruct.GPIO_Mode = UART_TX_MODE;
     GPIO_Init(&GPIO_InitStruct);
+
+    // ---- GPIO Interrupt section ----
+    
+    // Eanble GPIO Interrupt
+    NVIC_InitType nvicConfig = {
+        .NVIC_IRQChannel = GPIO_IRQn,
+        .NVIC_IRQChannelPreemptionPriority = GPIO_IT_PRIORITY,
+        .NVIC_IRQChannelCmd = ENABLE};
+    NVIC_Init(&nvicConfig);
+
+    // Configure GPIO Interrupt
+    GPIO_EXTIConfigType GPIO_EXTIStructure;
+    GPIO_EXTIStructure.GPIO_Pin = BOND_PIN;
+    GPIO_EXTIStructure.GPIO_IrqSense = GPIO_IrqSense_Edge;
+    GPIO_EXTIStructure.GPIO_Event = GPIO_Event_High;
+    GPIO_EXTIConfig(&GPIO_EXTIStructure);
+
+    // Clear pending GPIO Interrupt
+    GPIO_ClearITPendingBit(BOND_PIN);
+  
+    // Enable GPIO interrupt
+    GPIO_EXTICmd(BOND_PIN, ENABLE);
 }
 
 void _boardInitUart()
@@ -330,7 +356,8 @@ void _boardInitPwm()
 {
     // Init pwm
     pwm_init(&_board.lightPwm, MFT1);
-    pwm_config(&_board.lightPwm, 60);
+    // Configure the PWM to 100Hz
+    pwm_config(&_board.lightPwm, 100);
 }
 
 void _boardInitAdc()
@@ -338,4 +365,19 @@ void _boardInitAdc()
     // Init adc
     adc_init(&_board.sensorAdc, ADC);
     adc_config(&_board.sensorAdc, ADC_CH_PIN1);
+}
+
+
+// ISR handler -----------------------------------------------------------------
+void GPIO_IT_HANDLER()
+{
+    if (GPIO_GetITPendingBit(BOND_PIN) == SET)
+    {
+        GPIO_ClearITPendingBit(BOND_PIN);
+
+        // Send msg to App task
+        BaseType_t xHigherPriorityTaskWoken;
+        taskAppSendMsgBond(&xHigherPriorityTaskWoken);
+        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+    }
 }
