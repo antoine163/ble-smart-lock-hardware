@@ -41,6 +41,8 @@
 #include <FreeRTOS.h>
 #include <semphr.h>
 
+#include <tasks/taskApp/taskApp.h>
+
 // Struct ------------------------------------------------------------------------
 typedef struct
 {
@@ -99,7 +101,7 @@ void boardInit()
 int boardPrintf(char const *format, ...)
 {
     va_list ap;
-    char str[128];
+    static char str[256];
 
     va_start(ap, format);
     int n = vsnprintf(str, sizeof(str), format, ap);

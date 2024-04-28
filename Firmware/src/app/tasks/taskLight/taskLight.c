@@ -38,7 +38,7 @@
 #include <queue.h>
 
 // Define ----------------------------------------------------------------------
-#define _MSG_QUEUE_LENGTH 8
+#define _TASK_LIGHT_MSG_QUEUE_LENGTH 8
 
 // Struct ----------------------------------------------------------------------
 typedef struct
@@ -51,7 +51,7 @@ typedef struct
 {
     QueueHandle_t msgQueue;
     StaticQueue_t msgStaticQueue;
-    uint8_t msgQueueStorageArea[sizeof(taskLightMsg_t) * _MSG_QUEUE_LENGTH];
+    uint8_t msgQueueStorageArea[sizeof(taskLightMsg_t) * _TASK_LIGHT_MSG_QUEUE_LENGTH];
 } taskLight_t;
 
 // Global variables ------------------------------------------------------------
@@ -62,7 +62,7 @@ void taskLightCode(__attribute__((unused)) void *parameters)
 {
     taskLightMsg_t msg;
 
-    _taskLight.msgQueue = xQueueCreateStatic(_MSG_QUEUE_LENGTH,
+    _taskLight.msgQueue = xQueueCreateStatic(_TASK_LIGHT_MSG_QUEUE_LENGTH,
                                              sizeof(taskLightMsg_t),
                                              _taskLight.msgQueueStorageArea,
                                              &_taskLight.msgStaticQueue);

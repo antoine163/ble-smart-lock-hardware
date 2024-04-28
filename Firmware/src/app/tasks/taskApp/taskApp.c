@@ -39,7 +39,7 @@
 #include <queue.h>
 
 // Define ----------------------------------------------------------------------
-#define _MSG_QUEUE_LENGTH 8
+#define _TASK_APP_MSG_QUEUE_LENGTH 8
 
 // Enum ------------------------------------------------------------------------
 typedef enum
@@ -57,7 +57,7 @@ typedef struct
 {
     QueueHandle_t msgQueue;
     StaticQueue_t msgStaticQueue;
-    uint8_t msgQueueStorageArea[sizeof(taskAppMsg_t) * _MSG_QUEUE_LENGTH];
+    uint8_t msgQueueStorageArea[sizeof(taskAppMsg_t) * _TASK_APP_MSG_QUEUE_LENGTH];
 } taskApp_t;
 
 // Global variables ------------------------------------------------------------
@@ -70,7 +70,7 @@ void taskAppCode(__attribute__((unused)) void *parameters)
 {
     taskAppMsg_t msg;
 
-    _taskApp.msgQueue = xQueueCreateStatic(_MSG_QUEUE_LENGTH,
+    _taskApp.msgQueue = xQueueCreateStatic(_TASK_APP_MSG_QUEUE_LENGTH,
                                            sizeof(taskAppMsg_t),
                                            _taskApp.msgQueueStorageArea,
                                            &_taskApp.msgStaticQueue);
