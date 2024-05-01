@@ -46,6 +46,8 @@
 #include <task.h>
 #include <queue.h>
 
+#include "tasks/taskApp/taskApp.h"
+
 // Define ----------------------------------------------------------------------
 #define _TASK_BLE_DEFAULT_NAME "Ble Smart Lock"
 #define _TASK_BLE_NAME_MAX_SIZE 16
@@ -57,7 +59,7 @@
 // Enum ------------------------------------------------------------------------
 typedef enum
 {
-    BLE_EVENT_RADIO_IRQ
+    BLE_EVENT_BLE_IT
 } taskBleEventType_t;
 
 // Struct ----------------------------------------------------------------------
@@ -78,7 +80,10 @@ typedef struct
     uint16_t devNameCharGapHandle;
     uint16_t appearanceCharGapHandle;
 
-    // APP handle
+    // Ble stack status
+    tBleStatus bleStatus;
+
+    // BLE handle
     /**
      * @brief Service handle of application.
      */
@@ -148,50 +153,72 @@ void taskBleCodeInit()
 {
     // Init event queue
     _taskBle.eventQueue = xQueueCreateStatic(_TASK_BLE_EVENT_QUEUE_LENGTH,
-                                           sizeof(taskBleEvent_t),
-                                           _taskBle.eventQueueStorageArea,
-                                           &_taskBle.eventStaticQueue);
+                                             sizeof(taskBleEvent_t),
+                                             _taskBle.eventQueueStorageArea,
+                                             &_taskBle.eventStaticQueue);
 
     // Init Ble
-    tBleStatus ret = BlueNRG_Stack_Initialization(&BlueNRG_Stack_Init_params);
-    if (ret != BLE_STATUS_SUCCESS)
-        boardPrintf("Ble stack init: %s\r\n", _taskBleStatusToStr(ret));
+    _taskBle.bleStatus = BlueNRG_Stack_Initialization(&BlueNRG_Stack_Init_params);
+    if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
+        boardPrintf("Ble stack init: %s\r\n",
+                    _taskBleStatusToStr(_taskBle.bleStatus));
 
-    if (ret == BLE_STATUS_SUCCESS)
+    if (_taskBle.bleStatus == BLE_STATUS_SUCCESS)
     {
-        ret = _taskBleInitDevice();
-        if (ret != BLE_STATUS_SUCCESS)
-            boardPrintf("Ble init device error: %s\r\n", _taskBleStatusToStr(ret));
+        _taskBle.bleStatus = _taskBleInitDevice();
+        if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
+            boardPrintf("Ble init device error: %s\r\n",
+                        _taskBleStatusToStr(_taskBle.bleStatus));
     }
 
-    if (ret == BLE_STATUS_SUCCESS)
+    if (_taskBle.bleStatus == BLE_STATUS_SUCCESS)
     {
-        ret = _taskBleAddServices();
-        if (ret != BLE_STATUS_SUCCESS)
-            boardPrintf("Ble add service error: %s\r\n", _taskBleStatusToStr(ret));
+        _taskBle.bleStatus = _taskBleAddServices();
+        if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
+            boardPrintf("Ble add service error: %s\r\n",
+                        _taskBleStatusToStr(_taskBle.bleStatus));
     }
 
-    if (ret == BLE_STATUS_SUCCESS)
+    if (_taskBle.bleStatus == BLE_STATUS_SUCCESS)
     {
-        ret = _taskBleMakeDiscoverable();
-        if (ret != BLE_STATUS_SUCCESS)
-            boardPrintf("Ble make discoverable error: %s\r\n", _taskBleStatusToStr(ret));
+        _taskBle.bleStatus = _taskBleMakeDiscoverable();
+        if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
+            boardPrintf("Ble make discoverable error: %s\r\n",
+                        _taskBleStatusToStr(_taskBle.bleStatus));
     }
 
-    if (ret == BLE_STATUS_SUCCESS)
+    if (_taskBle.bleStatus == BLE_STATUS_SUCCESS)
         boardPrintf("Ble initialised with success\r\n");
 }
 
 // Implemented functions -------------------------------------------------------
 void taskBleCode(__attribute__((unused)) void *parameters)
 {
+    taskBleEvent_t event;
+
+    if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
+    {
+        taskAppBleErr();
+    }
+
     while (1)
     {
-        BTLE_StackTick();
-        if (BlueNRG_Stack_Perform_Deep_Sleep_Check() != SLEEPMODE_RUNNING)
+        xQueueReceive(_taskBle.eventQueue, &event, portMAX_DELAY);
+
+        switch (event.type)
         {
-            ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+        case BLE_EVENT_BLE_IT:
+            BTLE_StackTick();
+            break;
+
+        default:
+            break;
         }
+
+        // while (BlueNRG_Stack_Perform_Deep_Sleep_Check() == SLEEPMODE_RUNNING)
+        // {
+        //     BTLE_StackTick();
+        // }
     }
 }
 
@@ -201,14 +228,14 @@ void BLE_IT_HANDLER()
     RAL_Isr();
 
     taskBleEvent_t event = {
-        .type = BLE_EVENT_RADIO_IRQ};
+        .type = BLE_EVENT_BLE_IT};
     xQueueSendFromISR(_taskBle.eventQueue, &event, &xHigherPriorityTaskWoken);
     portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
 
 tBleStatus _taskBleInitDevice()
 {
-    tBleStatus ret;
+    tBleStatus bleStatus;
     uint8_t deviceName[] = _TASK_BLE_DEFAULT_NAME;
     uint8_t bdaddr[] = {
         ROM_INFO->UNIQUE_ID_1,
@@ -219,67 +246,67 @@ tBleStatus _taskBleInitDevice()
         ROM_INFO->UNIQUE_ID_6};
 
     // Configure BLE device public address
-    ret = aci_hal_write_config_data(
+    bleStatus = aci_hal_write_config_data(
         CONFIG_DATA_PUBADDR_OFFSET,
         CONFIG_DATA_PUBADDR_LEN,
         bdaddr);
-    if (ret != BLE_STATUS_SUCCESS)
-        return ret;
+    if (bleStatus != BLE_STATUS_SUCCESS)
+        return bleStatus;
 
     /* Set the TX power -14 dBm */
-    ret = aci_hal_set_tx_power_level(1, 0);
-    if (ret != BLE_STATUS_SUCCESS)
-        return ret;
+    bleStatus = aci_hal_set_tx_power_level(1, 0);
+    if (bleStatus != BLE_STATUS_SUCCESS)
+        return bleStatus;
 
     // Init BLE GATT layer
-    ret = aci_gatt_init();
-    if (ret != BLE_STATUS_SUCCESS)
-        return ret;
+    bleStatus = aci_gatt_init();
+    if (bleStatus != BLE_STATUS_SUCCESS)
+        return bleStatus;
 
     // Init BLE GAP layer
-    ret = aci_gap_init(
+    bleStatus = aci_gap_init(
         GAP_PERIPHERAL_ROLE,
         PRIVACY_ENABLED,
         _TASK_BLE_NAME_MAX_SIZE,
         &_taskBle.serviceGapHandle,
         &_taskBle.devNameCharGapHandle,
         &_taskBle.appearanceCharGapHandle);
-    if (ret != BLE_STATUS_SUCCESS)
-        return ret;
+    if (bleStatus != BLE_STATUS_SUCCESS)
+        return bleStatus;
 
     // Update device name
-    ret = aci_gatt_update_char_value_ext(
+    bleStatus = aci_gatt_update_char_value_ext(
         0, _taskBle.serviceGapHandle, _taskBle.devNameCharGapHandle,
         0x00, // GATT_LOCAL_UPDATE
         sizeof(deviceName) - 1,
         0, sizeof(deviceName) - 1, deviceName);
-    if (ret != BLE_STATUS_SUCCESS)
-        return ret;
+    if (bleStatus != BLE_STATUS_SUCCESS)
+        return bleStatus;
 
     // Update Appearance (from Bluetooth SIG)
     // - Category (bits 15 to 6) : 0x01C Access Control
     // - Sub-categor (bits 5 to 0) : 0x08 Access Lock
     // - Value : 0x0708 // Door Lock
     uint16_t appearanceVal = 0x0708;
-    ret = aci_gatt_update_char_value(
+    bleStatus = aci_gatt_update_char_value(
         _taskBle.serviceGapHandle, _taskBle.appearanceCharGapHandle,
         0x00, sizeof(appearanceVal), (uint8_t *)&appearanceVal);
-    if (ret != BLE_STATUS_SUCCESS)
-        return ret;
+    if (bleStatus != BLE_STATUS_SUCCESS)
+        return bleStatus;
 
     // TODO et si il y a une coupur de courent la conection est perdue ? Non a parament
     // TODO a appler si on veur tou re inisilsier la config par defeau ...
-    //    ret = aci_gap_clear_security_db();
-    //    if (ret != BLE_STATUS_SUCCESS)
-    //        return ret;
+    //    bleStatus = aci_gap_clear_security_db();
+    //    if (bleStatus != BLE_STATUS_SUCCESS)
+    //        return bleStatus;
 
     // Set the proper security I/O capability
-    ret = aci_gap_set_io_capability(IO_CAP_DISPLAY_ONLY);
-    if (ret != BLE_STATUS_SUCCESS)
-        return ret;
+    bleStatus = aci_gap_set_io_capability(IO_CAP_DISPLAY_ONLY);
+    if (bleStatus != BLE_STATUS_SUCCESS)
+        return bleStatus;
 
     // Set the proper security I/O authentication
-    ret = aci_gap_set_authentication_requirement(
+    bleStatus = aci_gap_set_authentication_requirement(
         BONDING,
         MITM_PROTECTION_REQUIRED,
         SC_IS_MANDATORY,
@@ -289,8 +316,8 @@ tBleStatus _taskBleInitDevice()
         USE_FIXED_PIN_FOR_PAIRING,
         123456, // Fixed Pin
         STATIC_RANDOM_ADDR);
-    if (ret != BLE_STATUS_SUCCESS)
-        return ret;
+    if (bleStatus != BLE_STATUS_SUCCESS)
+        return bleStatus;
 
     return BLE_STATUS_SUCCESS;
 }
@@ -298,7 +325,7 @@ tBleStatus _taskBleInitDevice()
 // Define the required Services & Characteristics & Characteristics Descriptors
 tBleStatus _taskBleAddServices()
 {
-    tBleStatus ret;
+    tBleStatus bleStatus;
 
     // UUID from https://www.famkruithof.net/uuid/uuidgen
     // 44707b20-3459-11ee-aea4-0800200c9a66
@@ -314,15 +341,15 @@ tBleStatus _taskBleAddServices()
     Char_UUID_t brightnessCharAppUuid = {.Char_UUID_128 = {0x66, 0x9a, 0x0c, 0x20, 0x00, 0x08, 0xa4, 0xae, 0xee, 0x11, 0x59, 0x34, 0x24, 0x7b, 0x70, 0x44}};
     Char_UUID_t brightnessThCharAppUuid = {.Char_UUID_128 = {0x66, 0x9a, 0x0c, 0x20, 0x00, 0x08, 0xa4, 0xae, 0xee, 0x11, 0x59, 0x34, 0x25, 0x7b, 0x70, 0x44}};
 
-    ret = aci_gatt_add_service(
+    bleStatus = aci_gatt_add_service(
         UUID_TYPE_128, &serviceAppUuid,
         PRIMARY_SERVICE,
         1 + NUM_APP_GATT_ATTRIBUTES, // 1 (service) + N characteristic
         &_taskBle.serviceAppHandle);
-    if (ret != BLE_STATUS_SUCCESS)
-        return ret;
+    if (bleStatus != BLE_STATUS_SUCCESS)
+        return bleStatus;
 
-    ret = aci_gatt_add_char(
+    bleStatus = aci_gatt_add_char(
         _taskBle.serviceAppHandle,
         UUID_TYPE_128, &lockStateCharAppUuid,
         sizeof(uint8_t), // Maximum length of the characteristic value
@@ -332,10 +359,10 @@ tBleStatus _taskBleAddServices()
         0x10, // Minimum encryption key size
         0x00, // Characteristic value has a fixed length
         &_taskBle.lockStateCharAppHandle);
-    if (ret != BLE_STATUS_SUCCESS)
-        return ret;
+    if (bleStatus != BLE_STATUS_SUCCESS)
+        return bleStatus;
 
-    ret = aci_gatt_add_char(
+    bleStatus = aci_gatt_add_char(
         _taskBle.serviceAppHandle,
         UUID_TYPE_128, &doorStateCharAppUuid,
         sizeof(uint8_t), // Maximum length of the characteristic value
@@ -345,10 +372,10 @@ tBleStatus _taskBleAddServices()
         0x10, // Minimum encryption key size
         0x00, // Characteristic value has a fixed length
         &_taskBle.doorStateCharAppHandle);
-    if (ret != BLE_STATUS_SUCCESS)
-        return ret;
+    if (bleStatus != BLE_STATUS_SUCCESS)
+        return bleStatus;
 
-    ret = aci_gatt_add_char(
+    bleStatus = aci_gatt_add_char(
         _taskBle.serviceAppHandle,
         UUID_TYPE_128, &openDoorCharAppUuid,
         sizeof(uint8_t), // Maximum length of the characteristic value
@@ -358,10 +385,10 @@ tBleStatus _taskBleAddServices()
         0x10, // Minimum encryption key size
         0x00, // Characteristic value has a fixed length
         &_taskBle.openDoorCharAppHandle);
-    if (ret != BLE_STATUS_SUCCESS)
-        return ret;
+    if (bleStatus != BLE_STATUS_SUCCESS)
+        return bleStatus;
 
-    ret = aci_gatt_add_char(
+    bleStatus = aci_gatt_add_char(
         _taskBle.serviceAppHandle,
         UUID_TYPE_128, &brightnessCharAppUuid,
         sizeof(float), // Maximum length of the characteristic value
@@ -371,10 +398,10 @@ tBleStatus _taskBleAddServices()
         0x10, // Minimum encryption key size
         0x00, // Characteristic value has a fixed length
         &_taskBle.brightnessCharAppHandle);
-    if (ret != BLE_STATUS_SUCCESS)
-        return ret;
+    if (bleStatus != BLE_STATUS_SUCCESS)
+        return bleStatus;
 
-    ret = aci_gatt_add_char(
+    bleStatus = aci_gatt_add_char(
         _taskBle.serviceAppHandle,
         UUID_TYPE_128, &brightnessThCharAppUuid,
         sizeof(float), // Maximum length of the characteristic value
@@ -384,24 +411,24 @@ tBleStatus _taskBleAddServices()
         0x10, // Minimum encryption key size
         0x00, // Characteristic value has a fixed length
         &_taskBle.brightnessThCharAppHandle);
-    if (ret != BLE_STATUS_SUCCESS)
-        return ret;
+    if (bleStatus != BLE_STATUS_SUCCESS)
+        return bleStatus;
 
     return BLE_STATUS_SUCCESS;
 }
 
 tBleStatus _taskBleMakeDiscoverable()
 {
-    tBleStatus ret;
+    tBleStatus bleStatus;
     uint8_t localName[] = " "_TASK_BLE_DEFAULT_NAME;
     localName[0] = AD_TYPE_COMPLETE_LOCAL_NAME;
 
     /* Disable scan response: passive scan */
-    ret = hci_le_set_scan_response_data(0, NULL);
-    if (ret != BLE_STATUS_SUCCESS)
-        return ret;
+    bleStatus = hci_le_set_scan_response_data(0, NULL);
+    if (bleStatus != BLE_STATUS_SUCCESS)
+        return bleStatus;
 
-    ret = aci_gap_set_discoverable(
+    bleStatus = aci_gap_set_discoverable(
         ADV_IND,
         (_TASK_BLE_ADV_INTERVAL_MIN_MS * 1000) / 625,
         (_TASK_BLE_ADV_INTERVAL_MAX_MS * 1000) / 625,
@@ -410,9 +437,9 @@ tBleStatus _taskBleMakeDiscoverable()
         sizeof(localName) - 1,
         localName,
         0, NULL, 0, 0);
-    //    ret = aci_gap_set_undirected_connectable(100, 100, RESOLVABLE_PRIVATE_ADDR, NO_WHITE_LIST_USE);
-    if (ret != BLE_STATUS_SUCCESS)
-        return ret;
+    //    bleStatus = aci_gap_set_undirected_connectable(100, 100, RESOLVABLE_PRIVATE_ADDR, NO_WHITE_LIST_USE);
+    if (bleStatus != BLE_STATUS_SUCCESS)
+        return bleStatus;
 
     return BLE_STATUS_SUCCESS;
 }

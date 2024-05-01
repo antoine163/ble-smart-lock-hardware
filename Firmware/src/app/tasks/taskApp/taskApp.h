@@ -38,6 +38,9 @@
 // Prototype functions ---------------------------------------------------------
 void taskAppCodeInit();
 void taskAppCode(void *parameters);
+
+// Send event prototype fonction
 void taskAppSendEventBondFromISR(BaseType_t* pxHigherPriorityTaskWoken);
+void taskAppBleErr();
 
 #endif // TASK_APP_H

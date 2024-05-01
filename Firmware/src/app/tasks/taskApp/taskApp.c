@@ -44,6 +44,16 @@
 // Enum ------------------------------------------------------------------------
 typedef enum
 {
+    APP_STATUS_BLE_ERROR,    //!< Indicates a ble radio error.
+    APP_STATUS_BONDING,      //!< Indicates that the device is bonding.
+    APP_STATUS_DISCONNECTED, //!< Indicates that the device is disconnected.
+    APP_STATUS_CONNECTED,    //!< Indicates that the device is connected.
+    APP_STATUS_UNLOCKED      //!< Indicates that the device is unlocked.
+} taskAppStatus_t;
+
+typedef enum
+{
+    APP_EVENT_BLE_ERR,
     APP_EVENT_BUTTON_BOND
 } taskAppEventType_t;
 
@@ -59,18 +69,26 @@ typedef struct
     QueueHandle_t eventQueue;
     StaticQueue_t eventStaticQueue;
     uint8_t eventQueueStorageArea[sizeof(taskAppEvent_t) * _TASK_APP_EVENT_QUEUE_LENGTH];
+
+    // App status
+    taskAppStatus_t status;
 } taskApp_t;
 
 // Global variables ------------------------------------------------------------
 static taskApp_t _taskApp = {0};
 
+// Private prototype functions -------------------------------------------------
+void _taskAppEventBleErrHandle();
+
 // Implemented functions -------------------------------------------------------
 void taskAppCodeInit()
 {
     _taskApp.eventQueue = xQueueCreateStatic(_TASK_APP_EVENT_QUEUE_LENGTH,
-                                           sizeof(taskAppEvent_t),
-                                           _taskApp.eventQueueStorageArea,
-                                           &_taskApp.eventStaticQueue);
+                                             sizeof(taskAppEvent_t),
+                                             _taskApp.eventQueueStorageArea,
+                                             &_taskApp.eventStaticQueue);
+
+    _taskApp.status = APP_STATUS_DISCONNECTED;
 }
 
 void taskAppCode(__attribute__((unused)) void *parameters)
@@ -81,93 +99,33 @@ void taskAppCode(__attribute__((unused)) void *parameters)
 
     while (1)
     {
-        if (xQueueReceive(_taskApp.eventQueue, &event, 400 / portTICK_PERIOD_MS) == pdTRUE)
+        xQueueReceive(_taskApp.eventQueue, &event, portMAX_DELAY);
+
+        switch (event.type)
         {
+        case APP_EVENT_BLE_ERR:
+            _taskAppEventBleErrHandle();
+            break;
 
-            boardOpen();
-            static int leddc = 0;
-            leddc += 10;
-
-            if (leddc > 100)
-            {
-                leddc = 0;
-                taskLightSetColor(COLOR_OFF, 0);
-            }
-            else
-            {
-                boardSetLightDc( leddc );
-                taskLightSetColor(COLOR_BLUE, 0);
-            }
-        }
-        else
-        {
-            boardLedToggel();
-            // boardSetLightDc(boardGetBrightness());
-        }
-    }
-
-    // while(1)
-    // {
-    boardLedOn();
-    vTaskDelay(500 / portTICK_PERIOD_MS);
-    boardLedOff();
-    vTaskDelay(500 / portTICK_PERIOD_MS);
-    // }
-
-    // taskLightSetColor(COLOR_GREEN, 0);
-
-    boardUnlock();
-
-    // boardOpen();
-
-    // boardLock();
-
-    // taskLightSetColor(COLOR_WHITE, 0);
-
-    bool ledon = false;
-    while (1)
-    {
-        // taskLightSetColor(COLOR_RED, 0);
-        // vTaskDelay(1000 / portTICK_PERIOD_MS);
-        // taskLightSetColor(COLOR_GREEN, 0);
-        // vTaskDelay(1000  / portTICK_PERIOD_MS);
-        // taskLightSetColor(COLOR_BLUE, 0);
-        // vTaskDelay(1000 / portTICK_PERIOD_MS);
-        // taskLightSetColor(COLOR_WHITE, 0);
-        // vTaskDelay(1000 / portTICK_PERIOD_MS);
-
-        // taskLightSetColor(COLOR_OFF, 0 );
-        // vTaskDelay(1000 / portTICK_PERIOD_MS);
-
-        boardLedToggel();
-
-        int val = boardGetBrightness();
-        boardPrintf("Brightness:%i\r\n", val);
-        boardPrintf("Is open:%s\r\n", boardIsOpen() ? "yes" : "no");
-
-        vTaskDelay(500 / portTICK_PERIOD_MS);
-
-        if (GPIO_ReadBit(BOND_PIN) == Bit_SET)
-        {
-            vTaskDelay(500 / portTICK_PERIOD_MS);
-
-            if (ledon == true)
-            {
-                ledon = false;
-                taskLightSetColor(COLOR_WHITE, 0);
-            }
-            else
-            {
-                ledon = true;
-                taskLightSetColor(COLOR_OFF, 0);
-            }
-
-            // boardOpen();
+        default:
+            break;
         }
     }
 }
 
-void taskAppSendEventBondFromISR(BaseType_t* pxHigherPriorityTaskWoken)
+// Handle event implemented fonction
+void _taskAppEventBleErrHandle()
+{
+    _taskApp.status = APP_STATUS_BLE_ERROR;
+
+    boardEnableIo(true);
+    boardLedOn();
+    taskLightSetColor(COLOR_RED, 0);
+    
+}
+
+// Send event implemented fonction
+void taskAppSendEventBondFromISR(BaseType_t *pxHigherPriorityTaskWoken)
 {
     if (_taskApp.eventQueue != NULL)
     {
@@ -175,4 +133,11 @@ void taskAppSendEventBondFromISR(BaseType_t* pxHigherPriorityTaskWoken)
             .type = APP_EVENT_BUTTON_BOND};
         xQueueSendFromISR(_taskApp.eventQueue, &event, pxHigherPriorityTaskWoken);
     }
+}
+
+void taskAppBleErr()
+{
+    taskAppEvent_t event = {
+        .type = APP_EVENT_BLE_ERR};
+    xQueueSend(_taskApp.eventQueue, &event, portMAX_DELAY);
 }

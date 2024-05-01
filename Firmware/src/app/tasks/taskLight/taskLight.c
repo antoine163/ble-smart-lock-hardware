@@ -81,7 +81,7 @@ void taskLightCode(__attribute__((unused)) void *parameters)
     while (xQueueReceive(_taskLight.eventQueue, &event, portMAX_DELAY))
     {
         boardSetLightColor(event.color);
-        // boardSetLightDc(100);
+        boardSetLightDc(100);
     }
 }
 
@@ -91,5 +91,5 @@ void taskLightSetColor(color_t color, unsigned int transTime)
         .type = LIGHT_EVENT_COLOR,
         .color = color,
         .transTime = transTime};
-    xQueueSend(_taskLight.eventQueue, &event, 0);
+    xQueueSend(_taskLight.eventQueue, &event, portMAX_DELAY);
 }
