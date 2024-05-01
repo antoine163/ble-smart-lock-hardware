@@ -16,7 +16,7 @@
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABle: FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
@@ -26,7 +26,7 @@
  * @file taskBle.c
  * @author antoine163
  * @date 02-04-2024
- * @brief Task of BLE radio
+ * @brief Task of Ble: radio
  */
 
 // Include ---------------------------------------------------------------------
@@ -49,7 +49,7 @@
 #include "tasks/taskApp/taskApp.h"
 
 // Define ----------------------------------------------------------------------
-#define _TASK_BLE_DEFAULT_NAME "Ble Smart Lock"
+#define _TASK_BLE_DEFAULT_NAME "Ble: Smart Lock"
 #define _TASK_BLE_NAME_MAX_SIZE 16
 #define _TASK_BLE_ADV_INTERVAL_MIN_MS 1000
 #define _TASK_BLE_ADV_INTERVAL_MAX_MS 1500
@@ -59,7 +59,9 @@
 // Enum ------------------------------------------------------------------------
 typedef enum
 {
-    BLE_EVENT_BLE_IT
+    BLE_EVENT_BLE_IT,
+    BLE_EVENT_DISCOVERABLE,
+    BLE_EVENT_DOOR_STATE
 } taskBleEventType_t;
 
 // Struct ----------------------------------------------------------------------
@@ -83,7 +85,12 @@ typedef struct
     // Ble stack status
     tBleStatus bleStatus;
 
-    // BLE handle
+    // Ble handle
+    /**
+     * @brief Connection handle.
+     */
+    uint16_t connectionHandle;
+
     /**
      * @brief Service handle of application.
      */
@@ -148,6 +155,10 @@ const char *_taskBleStatusToStr(tBleStatus status);
 // Global variables ------------------------------------------------------------
 static taskBle_t _taskBle = {0};
 
+// Private prototype functions -------------------------------------------------
+void _taskBleEventDiscoverableHandle();
+void _taskBleEventDoorStateHandle();
+
 // Implemented functions -------------------------------------------------------
 void taskBleCodeInit()
 {
@@ -160,14 +171,14 @@ void taskBleCodeInit()
     // Init Ble
     _taskBle.bleStatus = BlueNRG_Stack_Initialization(&BlueNRG_Stack_Init_params);
     if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
-        boardPrintf("Ble stack init: %s\r\n",
+        boardPrintf("Ble: stack init: %s\r\n",
                     _taskBleStatusToStr(_taskBle.bleStatus));
 
     if (_taskBle.bleStatus == BLE_STATUS_SUCCESS)
     {
         _taskBle.bleStatus = _taskBleInitDevice();
         if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
-            boardPrintf("Ble init device error: %s\r\n",
+            boardPrintf("Ble: init device error: %s\r\n",
                         _taskBleStatusToStr(_taskBle.bleStatus));
     }
 
@@ -175,20 +186,12 @@ void taskBleCodeInit()
     {
         _taskBle.bleStatus = _taskBleAddServices();
         if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
-            boardPrintf("Ble add service error: %s\r\n",
+            boardPrintf("Ble: add service error: %s\r\n",
                         _taskBleStatusToStr(_taskBle.bleStatus));
     }
 
     if (_taskBle.bleStatus == BLE_STATUS_SUCCESS)
-    {
-        _taskBle.bleStatus = _taskBleMakeDiscoverable();
-        if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
-            boardPrintf("Ble make discoverable error: %s\r\n",
-                        _taskBleStatusToStr(_taskBle.bleStatus));
-    }
-
-    if (_taskBle.bleStatus == BLE_STATUS_SUCCESS)
-        boardPrintf("Ble initialised with success\r\n");
+        boardPrintf("Ble: initialised with success\r\n");
 }
 
 // Implemented functions -------------------------------------------------------
@@ -198,7 +201,7 @@ void taskBleCode(__attribute__((unused)) void *parameters)
 
     if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
     {
-        taskAppBleErr();
+        taskAppEventBleErr();
     }
 
     while (1)
@@ -208,18 +211,78 @@ void taskBleCode(__attribute__((unused)) void *parameters)
         switch (event.type)
         {
         case BLE_EVENT_BLE_IT:
-            BTLE_StackTick();
+            while (BlueNRG_Stack_Perform_Deep_Sleep_Check() == SLEEPMODE_RUNNING)
+                BTLE_StackTick();
+            break;
+
+        case BLE_EVENT_DISCOVERABLE:
+            _taskBleEventDiscoverableHandle();
+            break;
+
+        case BLE_EVENT_DOOR_STATE:
+            _taskBleEventDoorStateHandle();
             break;
 
         default:
             break;
         }
-
-        // while (BlueNRG_Stack_Perform_Deep_Sleep_Check() == SLEEPMODE_RUNNING)
-        // {
-        //     BTLE_StackTick();
-        // }
     }
+}
+
+// Handle event implemented fonction
+void _taskBleEventDiscoverableHandle()
+{
+    if (_taskBle.bleStatus == BLE_STATUS_SUCCESS)
+    {
+        _taskBle.bleStatus = _taskBleMakeDiscoverable();
+        if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
+        {
+            boardPrintf("Ble: make discoverable error: %s\r\n",
+                        _taskBleStatusToStr(_taskBle.bleStatus));
+            taskAppEventBleErr();
+        }
+        else
+            boardPrintf("Ble: is discoverable.\r\n");
+    }
+}
+
+void _taskBleEventDoorStateHandle()
+{
+    if (_taskBle.bleStatus == BLE_STATUS_SUCCESS)
+    {
+        bool doorState = boardIsOpen();
+        _taskBle.bleStatus = aci_gatt_update_char_value_ext(
+            _taskBle.connectionHandle,
+            _taskBle.serviceAppHandle,
+            _taskBle.doorStateCharAppHandle,
+            1, /* Update_Type: (1)GATT_NOTIFICATION */
+            1, /* Char_Length */
+            0, /* Value_Offset */
+            1, /* Value_Length */
+            (uint8_t *)&doorState);
+
+        if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
+        {
+            boardPrintf("Ble: write door state att error: %s\r\n",
+                        _taskBleStatusToStr(_taskBle.bleStatus));
+            taskAppEventBleErr();
+        }
+    }
+}
+
+// Send event implemented fonction
+void taskBleEventDiscoverable()
+{
+    taskBleEvent_t event = {
+        .type = BLE_EVENT_DISCOVERABLE};
+    xQueueSend(_taskBle.eventQueue, &event, portMAX_DELAY);
+}
+
+void taskBleEventDoorState()
+{
+    taskBleEvent_t event = {
+        .type = BLE_EVENT_DOOR_STATE};
+    xQueueSend(_taskBle.eventQueue, &event, portMAX_DELAY);
 }
 
 void BLE_IT_HANDLER()
@@ -245,7 +308,7 @@ tBleStatus _taskBleInitDevice()
         ROM_INFO->UNIQUE_ID_5,
         ROM_INFO->UNIQUE_ID_6};
 
-    // Configure BLE device public address
+    // Configure Ble: device public address
     bleStatus = aci_hal_write_config_data(
         CONFIG_DATA_PUBADDR_OFFSET,
         CONFIG_DATA_PUBADDR_LEN,
@@ -258,12 +321,12 @@ tBleStatus _taskBleInitDevice()
     if (bleStatus != BLE_STATUS_SUCCESS)
         return bleStatus;
 
-    // Init BLE GATT layer
+    // Init Ble: GATT layer
     bleStatus = aci_gatt_init();
     if (bleStatus != BLE_STATUS_SUCCESS)
         return bleStatus;
 
-    // Init BLE GAP layer
+    // Init Ble: GAP layer
     bleStatus = aci_gap_init(
         GAP_PERIPHERAL_ROLE,
         PRIVACY_ENABLED,
@@ -423,7 +486,7 @@ tBleStatus _taskBleMakeDiscoverable()
     uint8_t localName[] = " "_TASK_BLE_DEFAULT_NAME;
     localName[0] = AD_TYPE_COMPLETE_LOCAL_NAME;
 
-    /* Disable scan response: passive scan */
+    /* DisaBle: scan response: passive scan */
     bleStatus = hci_le_set_scan_response_data(0, NULL);
     if (bleStatus != BLE_STATUS_SUCCESS)
         return bleStatus;
@@ -585,3 +648,7 @@ const char *_taskBleStatusToStr(tBleStatus status)
     }
     return "";
 }
+
+// It's not very clean but I don't want to make the taskBle_t structure visible
+// outside of this file.
+#include "bleEvents.c"

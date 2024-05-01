@@ -96,6 +96,9 @@ void boardInit()
     _boardInitUart();
     _boardInitPwm();
     _boardInitAdc();
+
+    // Todo a supprimer
+    boardEnableIo(true);
 }
 
 int boardPrintf(char const *format, ...)
@@ -326,18 +329,24 @@ void _boardInitGpio()
         .NVIC_IRQChannelCmd = ENABLE};
     NVIC_Init(&nvicConfig);
 
-    // Configure GPIO Interrupt
+    // Configure bond button Interrupt
     GPIO_EXTIConfigType GPIO_EXTIStructure;
     GPIO_EXTIStructure.GPIO_Pin = BOND_PIN;
     GPIO_EXTIStructure.GPIO_IrqSense = GPIO_IrqSense_Edge;
     GPIO_EXTIStructure.GPIO_Event = GPIO_Event_High;
     GPIO_EXTIConfig(&GPIO_EXTIStructure);
 
+    // Configure door status (open/close) Interrupt
+    GPIO_EXTIStructure.GPIO_Pin = OPENED_PIN;
+    GPIO_EXTIStructure.GPIO_IrqSense = GPIO_IrqSense_Edge;
+    GPIO_EXTIStructure.GPIO_Event = GPIO_Event_Both;
+    GPIO_EXTIConfig(&GPIO_EXTIStructure);
+
     // Clear pending GPIO Interrupt
-    GPIO_ClearITPendingBit(BOND_PIN);
+    GPIO_ClearITPendingBit(BOND_PIN | OPENED_PIN);
   
     // Enable GPIO interrupt
-    GPIO_EXTICmd(BOND_PIN, ENABLE);
+    GPIO_EXTICmd(BOND_PIN | OPENED_PIN, ENABLE);
 }
 
 void _boardInitUart()
@@ -373,13 +382,25 @@ void _boardInitAdc()
 // ISR handler -----------------------------------------------------------------
 void GPIO_IT_HANDLER()
 {
+    // Bond button
     if (GPIO_GetITPendingBit(BOND_PIN) == SET)
     {
         GPIO_ClearITPendingBit(BOND_PIN);
 
-        // Send msg to App task
+        // Send event to App task
         BaseType_t xHigherPriorityTaskWoken;
-        taskAppSendEventBondFromISR(&xHigherPriorityTaskWoken);
+        taskAppEventBondFromISR(&xHigherPriorityTaskWoken);
+        portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+    }
+
+    // Door state (open/close)
+    if (GPIO_GetITPendingBit(OPENED_PIN) == SET)
+    {
+        GPIO_ClearITPendingBit(OPENED_PIN);
+
+        // Send event to App task
+        BaseType_t xHigherPriorityTaskWoken;
+        taskAppEventDoorStateFromISR(&xHigherPriorityTaskWoken);
         portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
     }
 }

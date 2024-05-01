@@ -22,10 +22,6 @@
  * SOFTWARE.
  */
 
-// Includes --------------------------------------------------------------------
-#include "board.h"
-#include "bluenrg1_events.h"
-
 // Define ----------------------------------------------------------------------
 #define BLE_EVENT_PRINT(...) boardPrintf(__VA_ARGS__)
 // #define BLE_EVENT_PRINT(...)
@@ -41,6 +37,8 @@ void hci_disconnection_complete_event(
     BLE_EVENT_PRINT("\tStatus:0x%x\r\n", Status);
     BLE_EVENT_PRINT("\tConnection_Handle:0x%x\r\n", Connection_Handle);
     BLE_EVENT_PRINT("\tReason:0x%x\r\n", Reason);
+
+    taskAppEventBleDisconnected();
 }
 
 void hci_encryption_change_event(
@@ -155,6 +153,9 @@ void hci_le_connection_complete_event(
         break;
     }
     BLE_EVENT_PRINT("\tMaster_Clock_Accuracy:%s\r\n", strMaster_Clock_Accuracy);
+
+    _taskBle.connectionHandle = Connection_Handle;
+    taskAppEventBleConnected();
 }
 
 void hci_le_advertising_report_event(
@@ -395,6 +396,29 @@ void aci_gatt_attribute_modified_event(
     BLE_EVENT_PRINT("\tAttr_Handle:0x%x\r\n", Attr_Handle);
     BLE_EVENT_PRINT("\tOffset:%u\r\n", Offset);
     BLE_EVENT_PRINT("\tAttr_Data_Length:%u\r\n", Attr_Data_Length);
+
+    // Commend to unlock lock
+    if (Attr_Handle == _taskBle.lockStateCharAppHandle +1)
+    {
+        if (Attr_Data[0] == 0x01)
+        {
+            taskAppEventBleUnlock();
+        }
+    }
+
+    // Commend to open door
+    else if (Attr_Handle == _taskBle.openDoorCharAppHandle +1)
+    {
+        if (Attr_Data[0] == 0x01)
+        {
+            taskAppEventBleOpen();
+        }
+    }
+
+    // Commend to set brightness threshold
+    else if (Attr_Handle == _taskBle.brightnessThCharAppHandle +1)
+    {
+    }
 }
 
 void aci_gatt_proc_timeout_event(

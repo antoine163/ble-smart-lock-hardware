@@ -39,8 +39,15 @@
 void taskAppCodeInit();
 void taskAppCode(void *parameters);
 
-// Send event prototype fonction
-void taskAppSendEventBondFromISR(BaseType_t* pxHigherPriorityTaskWoken);
-void taskAppBleErr();
+// Event prototype fonction
+void taskAppEventBondFromISR(BaseType_t* pxHigherPriorityTaskWoken);
+void taskAppEventDoorStateFromISR(BaseType_t* pxHigherPriorityTaskWoken);
+
+void taskAppEventBleErr();
+void taskAppEventBleConnected();
+void taskAppEventBleDisconnected();
+
+void taskAppEventBleUnlock();
+void taskAppEventBleOpen();
 
 #endif // TASK_APP_H
