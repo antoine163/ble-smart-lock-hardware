@@ -39,6 +39,9 @@
 void taskAppCodeInit();
 void taskAppCode(void *parameters);
 
+float taskAppGetBrightnessTh();
+void taskAppSetBrightnessTh(float th);
+
 // Event prototype fonction
 void taskAppEventBondFromISR(BaseType_t* pxHigherPriorityTaskWoken);
 void taskAppEventDoorStateFromISR(BaseType_t* pxHigherPriorityTaskWoken);

@@ -41,6 +41,7 @@
 
 // Define ----------------------------------------------------------------------
 #define _TASK_APP_EVENT_QUEUE_LENGTH 8
+#define _TASK_APP_DEFAULT_BRIGHTNESS_THRESHOLD 50.f // 50%
 
 // Enum ------------------------------------------------------------------------
 typedef enum
@@ -79,6 +80,9 @@ typedef struct
 
     // App status
     taskAppStatus_t status;
+
+    // App conf
+    float brightnessTh;
 } taskApp_t;
 
 // Global variables ------------------------------------------------------------
@@ -102,6 +106,9 @@ void taskAppCodeInit()
                                              &_taskApp.eventStaticQueue);
 
     _taskApp.status = APP_STATUS_DISCONNECTED;
+
+    // Todo: Lir la valeur à partie de la flash
+    _taskApp.brightnessTh = _TASK_APP_DEFAULT_BRIGHTNESS_THRESHOLD;
 }
 
 void taskAppCode(__attribute__((unused)) void *parameters)
@@ -151,6 +158,17 @@ void taskAppCode(__attribute__((unused)) void *parameters)
     }
 }
 
+float taskAppGetBrightnessTh()
+{
+    return _taskApp.brightnessTh;
+}
+
+void taskAppSetBrightnessTh(float th)
+{
+    _taskApp.brightnessTh = th;
+    // Todo: notifier tashApp pour sauvegarder la nouvelle valeur dans la flash.
+}
+
 // Handle event implemented fonction
 void _taskAppEventBleErrHandle()
 {
@@ -191,7 +209,11 @@ void _taskAppEventBleConnectedHandle()
 
     if (boardIsOpen() == true)
     {
-        taskLightSetColor(COLOR_WHITE, 0);
+        // turn on the exterior lighting if it's too dark
+        if (boardGetBrightness() <= _taskApp.brightnessTh)
+            taskLightSetColor(COLOR_WHITE, 0);
+        else
+            taskLightSetColor(COLOR_OFF, 0); // Todo allumer la bend LED en blanc mais pas l'éclairage
     }
     else
     {
@@ -216,7 +238,11 @@ void _taskAppEventBleLockHandle()
 
     if (boardIsOpen() == true)
     {
-        taskLightSetColor(COLOR_WHITE, 0);
+        // turn on the exterior lighting if it's too dark
+        if (boardGetBrightness() <= _taskApp.brightnessTh)
+            taskLightSetColor(COLOR_WHITE, 0);
+        else
+            taskLightSetColor(COLOR_OFF, 0); // Todo allumer la bend LED en blanc mais pas l'éclairage
     }
     else
     {
@@ -253,12 +279,15 @@ void _taskAppEventDoorStateHandle()
             break;
 
         case APP_STATUS_CONNECTED:
-            taskLightSetColor(COLOR_WHITE, 0);
-            break;
-
         case APP_STATUS_UNLOCKED:
-            taskLightSetColor(COLOR_WHITE, 0);
+        {
+            // turn on the exterior lighting if it's too dark
+            if (boardGetBrightness() <= _taskApp.brightnessTh)
+                taskLightSetColor(COLOR_WHITE, 0);
+            else
+                taskLightSetColor(COLOR_OFF, 0); // Todo allumer la bend LED en blanc mais pas l'éclairage
             break;
+        }
 
         default:
             break;

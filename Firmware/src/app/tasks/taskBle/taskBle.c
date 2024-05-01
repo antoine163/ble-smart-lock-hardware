@@ -199,6 +199,18 @@ void taskBleCode(__attribute__((unused)) void *parameters)
 {
     taskBleEvent_t event;
 
+    if (_taskBle.bleStatus == BLE_STATUS_SUCCESS)
+    {
+        // Update brightness threshold value
+        float th = taskAppGetBrightnessTh();
+        _taskBle.bleStatus = aci_gatt_update_char_value(
+            _taskBle.serviceAppHandle,
+            _taskBle.brightnessThCharAppHandle,
+            0, /* Val_Offset */
+            sizeof(float), /* Char_Value_Length */
+            (uint8_t *)&th);
+    }
+
     if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
     {
         taskAppEventBleErr();
@@ -468,8 +480,8 @@ tBleStatus _taskBleAddServices()
         _taskBle.serviceAppHandle,
         UUID_TYPE_128, &brightnessThCharAppUuid,
         sizeof(float), // Maximum length of the characteristic value
-        CHAR_PROP_WRITE,
-        ATTR_PERMISSION_ENCRY_WRITE,
+        CHAR_PROP_WRITE | CHAR_PROP_READ,
+        ATTR_PERMISSION_ENCRY_WRITE | ATTR_PERMISSION_ENCRY_READ,
         GATT_NOTIFY_ATTRIBUTE_WRITE,
         0x10, // Minimum encryption key size
         0x00, // Characteristic value has a fixed length
