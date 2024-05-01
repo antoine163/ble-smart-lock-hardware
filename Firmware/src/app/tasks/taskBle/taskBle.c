@@ -430,7 +430,7 @@ tBleStatus _taskBleAddServices()
         UUID_TYPE_128, &doorStateCharAppUuid,
         sizeof(uint8_t), // Maximum length of the characteristic value
         CHAR_PROP_READ | CHAR_PROP_NOTIFY,
-        ATTR_PERMISSION_NONE,
+        ATTR_PERMISSION_ENCRY_READ,
         GATT_DONT_NOTIFY_EVENTS,
         0x10, // Minimum encryption key size
         0x00, // Characteristic value has a fixed length
@@ -456,8 +456,8 @@ tBleStatus _taskBleAddServices()
         UUID_TYPE_128, &brightnessCharAppUuid,
         sizeof(float), // Maximum length of the characteristic value
         CHAR_PROP_READ,
-        ATTR_PERMISSION_NONE,
-        GATT_DONT_NOTIFY_EVENTS,
+        ATTR_PERMISSION_ENCRY_READ,
+        GATT_NOTIFY_READ_REQ_AND_WAIT_FOR_APPL_RESP,
         0x10, // Minimum encryption key size
         0x00, // Characteristic value has a fixed length
         &_taskBle.brightnessCharAppHandle);

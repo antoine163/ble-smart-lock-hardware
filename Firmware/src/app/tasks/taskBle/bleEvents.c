@@ -398,7 +398,7 @@ void aci_gatt_attribute_modified_event(
     BLE_EVENT_PRINT("\tAttr_Data_Length:%u\r\n", Attr_Data_Length);
 
     // Commend to unlock lock
-    if (Attr_Handle == _taskBle.lockStateCharAppHandle +1)
+    if (Attr_Handle == _taskBle.lockStateCharAppHandle + 1)
     {
         if (Attr_Data[0] == 0x01)
         {
@@ -407,7 +407,7 @@ void aci_gatt_attribute_modified_event(
     }
 
     // Commend to open door
-    else if (Attr_Handle == _taskBle.openDoorCharAppHandle +1)
+    else if (Attr_Handle == _taskBle.openDoorCharAppHandle + 1)
     {
         if (Attr_Data[0] == 0x01)
         {
@@ -416,7 +416,7 @@ void aci_gatt_attribute_modified_event(
     }
 
     // Commend to set brightness threshold
-    else if (Attr_Handle == _taskBle.brightnessThCharAppHandle +1)
+    else if (Attr_Handle == _taskBle.brightnessThCharAppHandle + 1)
     {
     }
 }
@@ -567,6 +567,23 @@ void aci_gatt_read_permit_req_event(
     __attribute__((unused)) uint16_t Offset)
 {
     BLE_EVENT_PRINT("aci_gatt_read_permit_req_event\r\n");
+    BLE_EVENT_PRINT("\tConnection_Handle:0x%x\r\n", Connection_Handle);
+    BLE_EVENT_PRINT("\tAttribute_Handle:0x%x\r\n", Attribute_Handle);
+    BLE_EVENT_PRINT("\tOffset:%u\r\n", Offset);
+
+    // Update brightness befor read
+    if (Attribute_Handle == _taskBle.brightnessCharAppHandle +1)
+    {
+        float brightness = boardGetBrightness();
+        aci_gatt_update_char_value(
+            _taskBle.serviceAppHandle,
+            _taskBle.brightnessCharAppHandle,
+            0,             /* Val_Offset */
+            sizeof(float), /* Char_Value_Length */
+            (uint8_t *)&brightness);
+    }
+
+    aci_gatt_allow_read(Connection_Handle);
 }
 
 void aci_gatt_read_multi_permit_req_event(
