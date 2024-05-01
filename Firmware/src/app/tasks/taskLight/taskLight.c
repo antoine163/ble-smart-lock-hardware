@@ -38,46 +38,58 @@
 #include <queue.h>
 
 // Define ----------------------------------------------------------------------
-#define _TASK_LIGHT_MSG_QUEUE_LENGTH 8
+#define _TASK_LIGHT_EVENT_QUEUE_LENGTH 8
+
+// Enum ------------------------------------------------------------------------
+typedef enum
+{
+    LIGHT_EVENT_COLOR
+} taskLightEventType_t;
 
 // Struct ----------------------------------------------------------------------
 typedef struct
 {
+    taskLightEventType_t type;
     color_t color;
     unsigned int transTime;
-} taskLightMsg_t;
+} taskLightEvent_t;
 
 typedef struct
 {
-    QueueHandle_t msgQueue;
-    StaticQueue_t msgStaticQueue;
-    uint8_t msgQueueStorageArea[sizeof(taskLightMsg_t) * _TASK_LIGHT_MSG_QUEUE_LENGTH];
+    // Event queue
+    QueueHandle_t eventQueue;
+    StaticQueue_t eventStaticQueue;
+    uint8_t eventQueueStorageArea[sizeof(taskLightEvent_t) * _TASK_LIGHT_EVENT_QUEUE_LENGTH];
 } taskLight_t;
 
 // Global variables ------------------------------------------------------------
-static taskLight_t _taskLight;
+static taskLight_t _taskLight = {0};
 
 // Implemented functions -------------------------------------------------------
+void taskLightCodeInit()
+{
+    _taskLight.eventQueue = xQueueCreateStatic(_TASK_LIGHT_EVENT_QUEUE_LENGTH,
+                                             sizeof(taskLightEvent_t),
+                                             _taskLight.eventQueueStorageArea,
+                                             &_taskLight.eventStaticQueue);
+}
+
 void taskLightCode(__attribute__((unused)) void *parameters)
 {
-    taskLightMsg_t msg;
+    taskLightEvent_t event;
 
-    _taskLight.msgQueue = xQueueCreateStatic(_TASK_LIGHT_MSG_QUEUE_LENGTH,
-                                             sizeof(taskLightMsg_t),
-                                             _taskLight.msgQueueStorageArea,
-                                             &_taskLight.msgStaticQueue);
-
-    while (xQueueReceive(_taskLight.msgQueue, &msg, portMAX_DELAY))
+    while (xQueueReceive(_taskLight.eventQueue, &event, portMAX_DELAY))
     {
-        boardSetLightColor(msg.color);
+        boardSetLightColor(event.color);
         // boardSetLightDc(100);
     }
 }
 
 void taskLightSetColor(color_t color, unsigned int transTime)
 {
-    taskLightMsg_t msg = {
+    taskLightEvent_t event = {
+        .type = LIGHT_EVENT_COLOR,
         .color = color,
         .transTime = transTime};
-    xQueueSend(_taskLight.msgQueue, &msg, 0);
+    xQueueSend(_taskLight.eventQueue, &event, 0);
 }

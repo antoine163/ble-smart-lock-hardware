@@ -44,31 +44,34 @@
 
 #include <FreeRTOS.h>
 #include <task.h>
-// #include <queue.h>
+#include <queue.h>
 
 // Define ----------------------------------------------------------------------
 #define _TASK_BLE_DEFAULT_NAME "Ble Smart Lock"
 #define _TASK_BLE_NAME_MAX_SIZE 16
-// #define _TASK_BLE_MSG_QUEUE_LENGTH 8
+#define _TASK_BLE_ADV_INTERVAL_MIN_MS 1000
+#define _TASK_BLE_ADV_INTERVAL_MAX_MS 1500
+
+#define _TASK_BLE_EVENT_QUEUE_LENGTH 8
 
 // Enum ------------------------------------------------------------------------
-// typedef enum
-// {
-//     TASK_BLE_EVENT_1
-// } taskBleEventType_t;
+typedef enum
+{
+    BLE_EVENT_RADIO_IRQ
+} taskBleEventType_t;
 
 // Struct ----------------------------------------------------------------------
-// typedef struct
-// {
-//     taskAppEventType_t event;
-// } taskBleMsg_t;
+typedef struct
+{
+    taskBleEventType_t type;
+} taskBleEvent_t;
 
 typedef struct
 {
-    // QueueHandle_t msgQueue;
-    // StaticQueue_t msgStaticQueue;
-    // uint8_t msgQueueStorageArea[sizeof(taskAppMsg_t) * _TASK_BLE_MSG_QUEUE_LENGTH];
-    TaskHandle_t taskHandle;
+    // Event queue
+    QueueHandle_t eventQueue;
+    StaticQueue_t eventStaticQueue;
+    uint8_t eventQueueStorageArea[sizeof(taskBleEvent_t) * _TASK_BLE_EVENT_QUEUE_LENGTH];
 
     // GAP handle
     uint16_t serviceGapHandle;
@@ -138,14 +141,18 @@ tBleStatus _taskBleAddServices();
 const char *_taskBleStatusToStr(tBleStatus status);
 
 // Global variables ------------------------------------------------------------
-static taskBle_t _taskBle = {
-    .taskHandle = NULL};
+static taskBle_t _taskBle = {0};
 
 // Implemented functions -------------------------------------------------------
-void taskBleCode(__attribute__((unused)) void *parameters)
+void taskBleCodeInit()
 {
-    _taskBle.taskHandle = xTaskGetCurrentTaskHandle();
+    // Init event queue
+    _taskBle.eventQueue = xQueueCreateStatic(_TASK_BLE_EVENT_QUEUE_LENGTH,
+                                           sizeof(taskBleEvent_t),
+                                           _taskBle.eventQueueStorageArea,
+                                           &_taskBle.eventStaticQueue);
 
+    // Init Ble
     tBleStatus ret = BlueNRG_Stack_Initialization(&BlueNRG_Stack_Init_params);
     if (ret != BLE_STATUS_SUCCESS)
         boardPrintf("Ble stack init: %s\r\n", _taskBleStatusToStr(ret));
@@ -173,7 +180,11 @@ void taskBleCode(__attribute__((unused)) void *parameters)
 
     if (ret == BLE_STATUS_SUCCESS)
         boardPrintf("Ble initialised with success\r\n");
+}
 
+// Implemented functions -------------------------------------------------------
+void taskBleCode(__attribute__((unused)) void *parameters)
+{
     while (1)
     {
         BTLE_StackTick();
@@ -188,7 +199,10 @@ void BLE_IT_HANDLER()
 {
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
     RAL_Isr();
-    vTaskNotifyGiveFromISR(_taskBle.taskHandle, &xHigherPriorityTaskWoken);
+
+    taskBleEvent_t event = {
+        .type = BLE_EVENT_RADIO_IRQ};
+    xQueueSendFromISR(_taskBle.eventQueue, &event, &xHigherPriorityTaskWoken);
     portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
 
@@ -379,19 +393,23 @@ tBleStatus _taskBleAddServices()
 tBleStatus _taskBleMakeDiscoverable()
 {
     tBleStatus ret;
-    uint8_t local_name[] = " BlueNRG Lock";
-    local_name[0] = AD_TYPE_COMPLETE_LOCAL_NAME;
+    uint8_t localName[] = " "_TASK_BLE_DEFAULT_NAME;
+    localName[0] = AD_TYPE_COMPLETE_LOCAL_NAME;
 
     /* Disable scan response: passive scan */
     ret = hci_le_set_scan_response_data(0, NULL);
     if (ret != BLE_STATUS_SUCCESS)
         return ret;
 
-    ret = aci_gap_set_discoverable(ADV_IND, 100, 100, RESOLVABLE_PRIVATE_ADDR,
-                                   NO_WHITE_LIST_USE,
-                                   sizeof(local_name) - 1,
-                                   local_name,
-                                   0, NULL, 0, 0);
+    ret = aci_gap_set_discoverable(
+        ADV_IND,
+        (_TASK_BLE_ADV_INTERVAL_MIN_MS * 1000) / 625,
+        (_TASK_BLE_ADV_INTERVAL_MAX_MS * 1000) / 625,
+        RESOLVABLE_PRIVATE_ADDR,
+        NO_WHITE_LIST_USE,
+        sizeof(localName) - 1,
+        localName,
+        0, NULL, 0, 0);
     //    ret = aci_gap_set_undirected_connectable(100, 100, RESOLVABLE_PRIVATE_ADDR, NO_WHITE_LIST_USE);
     if (ret != BLE_STATUS_SUCCESS)
         return ret;

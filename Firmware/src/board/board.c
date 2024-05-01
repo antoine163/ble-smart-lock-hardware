@@ -379,7 +379,7 @@ void GPIO_IT_HANDLER()
 
         // Send msg to App task
         BaseType_t xHigherPriorityTaskWoken;
-        taskAppSendMsgBond(&xHigherPriorityTaskWoken);
+        taskAppSendEventBondFromISR(&xHigherPriorityTaskWoken);
         portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
     }
 }

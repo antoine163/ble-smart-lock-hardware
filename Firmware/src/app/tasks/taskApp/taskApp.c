@@ -39,47 +39,49 @@
 #include <queue.h>
 
 // Define ----------------------------------------------------------------------
-#define _TASK_APP_MSG_QUEUE_LENGTH 8
+#define _TASK_APP_EVENT_QUEUE_LENGTH 8
 
 // Enum ------------------------------------------------------------------------
 typedef enum
 {
-    TASK_APP_EVENT_BUTTON_BOND
+    APP_EVENT_BUTTON_BOND
 } taskAppEventType_t;
 
 // Struct ----------------------------------------------------------------------
 typedef struct
 {
-    taskAppEventType_t event;
-} taskAppMsg_t;
+    taskAppEventType_t type;
+} taskAppEvent_t;
 
 typedef struct
 {
-    QueueHandle_t msgQueue;
-    StaticQueue_t msgStaticQueue;
-    uint8_t msgQueueStorageArea[sizeof(taskAppMsg_t) * _TASK_APP_MSG_QUEUE_LENGTH];
+    // Event queue
+    QueueHandle_t eventQueue;
+    StaticQueue_t eventStaticQueue;
+    uint8_t eventQueueStorageArea[sizeof(taskAppEvent_t) * _TASK_APP_EVENT_QUEUE_LENGTH];
 } taskApp_t;
 
 // Global variables ------------------------------------------------------------
-static taskApp_t _taskApp = {
-    .msgQueue = NULL
-};
+static taskApp_t _taskApp = {0};
 
 // Implemented functions -------------------------------------------------------
+void taskAppCodeInit()
+{
+    _taskApp.eventQueue = xQueueCreateStatic(_TASK_APP_EVENT_QUEUE_LENGTH,
+                                           sizeof(taskAppEvent_t),
+                                           _taskApp.eventQueueStorageArea,
+                                           &_taskApp.eventStaticQueue);
+}
+
 void taskAppCode(__attribute__((unused)) void *parameters)
 {
-    taskAppMsg_t msg;
-
-    _taskApp.msgQueue = xQueueCreateStatic(_TASK_APP_MSG_QUEUE_LENGTH,
-                                           sizeof(taskAppMsg_t),
-                                           _taskApp.msgQueueStorageArea,
-                                           &_taskApp.msgStaticQueue);
+    taskAppEvent_t event;
 
     boardEnableIo(true);
 
     while (1)
     {
-        if (xQueueReceive(_taskApp.msgQueue, &msg, 400 / portTICK_PERIOD_MS) == pdTRUE)
+        if (xQueueReceive(_taskApp.eventQueue, &event, 400 / portTICK_PERIOD_MS) == pdTRUE)
         {
 
             boardOpen();
@@ -165,12 +167,12 @@ void taskAppCode(__attribute__((unused)) void *parameters)
     }
 }
 
-void taskAppSendMsgBond(BaseType_t* pxHigherPriorityTaskWoken)
+void taskAppSendEventBondFromISR(BaseType_t* pxHigherPriorityTaskWoken)
 {
-    if (_taskApp.msgQueue != NULL)
+    if (_taskApp.eventQueue != NULL)
     {
-        taskAppMsg_t msg = {
-            .event = TASK_APP_EVENT_BUTTON_BOND};
-        xQueueSendFromISR(_taskApp.msgQueue, &msg, pxHigherPriorityTaskWoken);
+        taskAppEvent_t event = {
+            .type = APP_EVENT_BUTTON_BOND};
+        xQueueSendFromISR(_taskApp.eventQueue, &event, pxHigherPriorityTaskWoken);
     }
 }

@@ -36,6 +36,7 @@
 #include "board.h"
 
 // Prototype functions ---------------------------------------------------------
+void taskLightCodeInit();
 void taskLightCode(void *parameters);
 void taskLightSetColor(color_t color, unsigned int transTime);
 

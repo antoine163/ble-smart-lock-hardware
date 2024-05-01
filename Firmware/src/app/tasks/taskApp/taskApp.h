@@ -36,7 +36,8 @@
 #include <FreeRTOS.h>
 
 // Prototype functions ---------------------------------------------------------
+void taskAppCodeInit();
 void taskAppCode(void *parameters);
-void taskAppSendMsgBond(BaseType_t* pxHigherPriorityTaskWoken);
+void taskAppSendEventBondFromISR(BaseType_t* pxHigherPriorityTaskWoken);
 
 #endif // TASK_APP_H

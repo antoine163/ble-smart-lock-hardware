@@ -62,6 +62,12 @@
 // Prototype functions ---------------------------------------------------------
 
 /**
+ * @brief Initialise all static tasks of this firmware.
+ */
+
+void tasksStaticInit();
+
+/**
  * @brief Create all static tasks of this firmware.
  */
 void tasksStaticCreate();

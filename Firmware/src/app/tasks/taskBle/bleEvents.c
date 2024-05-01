@@ -39,6 +39,7 @@ void hci_disconnection_complete_event(
 {
     BLE_EVENT_PRINT("hci_disconnection_complete_event\r\n");
     BLE_EVENT_PRINT("\tStatus:0x%x\r\n", Status);
+    BLE_EVENT_PRINT("\tConnection_Handle:0x%x\r\n", Connection_Handle);
     BLE_EVENT_PRINT("\tReason:0x%x\r\n", Reason);
 }
 
@@ -48,6 +49,10 @@ void hci_encryption_change_event(
     __attribute__((unused)) uint8_t Encryption_Enabled)
 {
     BLE_EVENT_PRINT("hci_encryption_change_event\r\n");
+    BLE_EVENT_PRINT("\tStatus:0x%x\r\n", Status);
+    BLE_EVENT_PRINT("\tConnection_Handle:0x%x\r\n", Connection_Handle);
+    BLE_EVENT_PRINT("\tEncryption_Enabled:%s\r\n",
+                    (Encryption_Enabled = 0x00) ? "Link Level Encryption OFF" : "Link Level Encryption is ON with AES-CCM");
 }
 
 void hci_read_remote_version_information_complete_event(
@@ -111,6 +116,7 @@ void hci_le_connection_complete_event(
 {
     BLE_EVENT_PRINT("hci_le_connection_complete_event\r\n");
     BLE_EVENT_PRINT("\tStatus:0x%x\r\n", Status);
+    BLE_EVENT_PRINT("\tConnection_Handle:0x%x\r\n", Connection_Handle);
     BLE_EVENT_PRINT("\tRole:0x%x\r\n",
                     (Role == 0x00) ? "Master" : "Slave");
     BLE_EVENT_PRINT("\tPeer_Address_Type:0x%x\r\n",
@@ -150,7 +156,7 @@ void hci_le_connection_complete_event(
     }
     BLE_EVENT_PRINT("\tMaster_Clock_Accuracy:%s\r\n", strMaster_Clock_Accuracy);
 }
- 
+
 void hci_le_advertising_report_event(
     __attribute__((unused)) uint8_t Num_Reports,
     __attribute__((unused)) Advertising_Report_t Advertising_Report[])
@@ -167,6 +173,7 @@ void hci_le_connection_update_complete_event(
 {
     BLE_EVENT_PRINT("hci_le_connection_update_complete_event\r\n");
     BLE_EVENT_PRINT("\tStatus:0x%x\r\n", Status);
+    BLE_EVENT_PRINT("\tConnection_Handle:0x%x\r\n", Connection_Handle);
     BLE_EVENT_PRINT("\tConn_Interval:%u ms\r\n", (int)((float)Conn_Interval * 1.25));
     BLE_EVENT_PRINT("\tConn_Latency:0x%x\r\n", Conn_Latency);
     BLE_EVENT_PRINT("\tSupervision_Timeout:%u ms\r\n", (unsigned int)Supervision_Timeout * 10);
@@ -246,6 +253,7 @@ void aci_gap_pairing_complete_event(
     __attribute__((unused)) uint8_t Reason)
 {
     BLE_EVENT_PRINT("aci_gap_pairing_complete_event\r\n");
+    BLE_EVENT_PRINT("\tConnection_Handle:0x%x\r\n", Connection_Handle);
 
     char *strStatus = "";
     char *strReason = "";
@@ -383,6 +391,10 @@ void aci_gatt_attribute_modified_event(
     __attribute__((unused)) uint8_t Attr_Data[])
 {
     BLE_EVENT_PRINT("aci_gatt_attribute_modified_event\r\n");
+    BLE_EVENT_PRINT("\tConnection_Handle:0x%x\r\n", Connection_Handle);
+    BLE_EVENT_PRINT("\tAttr_Handle:0x%x\r\n", Attr_Handle);
+    BLE_EVENT_PRINT("\tOffset:%u\r\n", Offset);
+    BLE_EVENT_PRINT("\tAttr_Data_Length:%u\r\n", Attr_Data_Length);
 }
 
 void aci_gatt_proc_timeout_event(

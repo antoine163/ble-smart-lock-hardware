@@ -36,11 +36,23 @@
 #include <task.h>
 
 // Global variables ------------------------------------------------------------
+
+// Creat Stack of all static task listed in TASKS_STATIC_LIST
 #undef STATIC_TASK
 #define STATIC_TASK(taskCode, name, stackDepth, parameters, priority) \
     static StaticTask_t _taskBuffer_##taskCode;                       \
     static StackType_t _tasksStack_##taskCode[stackDepth];
 TASKS_STATIC_LIST
+
+void tasksStaticInit()
+{
+    // Initialise all static task listed in TASKS_STATIC_LIST
+#undef STATIC_TASK
+#define STATIC_TASK(taskCode, name, stackDepth, parameters, priority) \
+    taskCode##Init();
+
+    TASKS_STATIC_LIST
+}
 
 // Implemented functions -------------------------------------------------------
 void tasksStaticCreate()
@@ -55,5 +67,6 @@ void tasksStaticCreate()
                       priority,                                       \
                       _tasksStack_##taskCode,                         \
                       &_taskBuffer_##taskCode);
+                      
     TASKS_STATIC_LIST
 }

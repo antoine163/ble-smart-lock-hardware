@@ -33,6 +33,7 @@
 #define TASK_BLE_H
 
 // Prototype functions ---------------------------------------------------------
+void taskBleCodeInit();
 void taskBleCode(void *parameters);
 
 #endif // TASK_BLE_H
