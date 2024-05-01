@@ -89,6 +89,8 @@ typedef struct
 static taskApp_t _taskApp = {0};
 
 // Private prototype functions -------------------------------------------------
+void _taskAppManageLightColor();
+void _taskAppSetLightOn();
 void _taskAppEventBleErrHandle();
 void _taskAppEventBleDisconnectedHandle();
 void _taskAppEventBleConnectedHandle();
@@ -169,66 +171,105 @@ void taskAppSetBrightnessTh(float th)
     // Todo: notifier tashApp pour sauvegarder la nouvelle valeur dans la flash.
 }
 
+void _taskAppManageLightColor()
+{
+    switch (_taskApp.status)
+    {
+    case APP_STATUS_BLE_ERROR:
+        taskLightSetColor(COLOR_RED, 0);
+        break;
+
+    case APP_STATUS_BONDING:
+    {
+        taskLightSetColor(COLOR_YELLOW, 0);
+        break;
+    }
+    case APP_STATUS_DISCONNECTED:
+    {
+        if (boardIsOpen() == true)
+        {
+            // Ble device is disconnected but the door is open.
+            // Turns on the red light to try to warn the user.
+            taskLightSetColor(COLOR_RED, 0);
+
+            // Todo: étendre la lumière rouge dans 15min s'il n'y à pas de nouveau
+            // événement.
+        }
+        else
+            taskLightSetColor(COLOR_OFF, 0);
+
+        break;
+    }
+    case APP_STATUS_CONNECTED:
+    {
+        if (boardIsOpen() == true)
+            _taskAppSetLightOn();
+        else
+            taskLightSetColor(COLOR_GREEN, 0);
+
+        break;
+    }
+    case APP_STATUS_UNLOCKED:
+    {
+        if (boardIsOpen() == true)
+            _taskAppSetLightOn();
+        else
+            taskLightSetColor(COLOR_BLUE, 0);
+
+        break;
+    }
+
+    default:
+        break;
+    }
+}
+
+void _taskAppSetLightOn()
+{
+    if (boardGetBrightness() <= _taskApp.brightnessTh)
+        taskLightSetColor(COLOR_WHITE_LIGHT, 0);
+    else
+        taskLightSetColor(COLOR_WHITE, 0);
+}
+
 // Handle event implemented fonction
 void _taskAppEventBleErrHandle()
 {
     boardPrintf("App: ble radio error !\r\n");
-
     boardLedOn();
-    taskLightSetColor(COLOR_RED, 0);
 
     _taskApp.status = APP_STATUS_BLE_ERROR;
+    _taskAppManageLightColor();
 }
 
 void _taskAppEventBleDisconnectedHandle()
 {
     boardPrintf("App: device disconnected.\r\n");
     boardLock();
+    _taskAppManageLightColor();
 
-    if (boardIsOpen() == true)
-    {
-        // Ble device is disconnected but the door is open.
-        // Turns on the red light to try to warn the user.
-        taskLightSetColor(COLOR_RED, 0);
-
-        // Todo: étendre la lumière rouge dans 15min s'il n'y à pas de nouveau
-        // événement.
-    }
-    else
-    {
-        taskLightSetColor(COLOR_OFF, 0);
+    if (boardIsOpen() == false)
         taskBleEventDiscoverable();
-    }
 
     _taskApp.status = APP_STATUS_DISCONNECTED;
+    _taskAppManageLightColor();
 }
 
 void _taskAppEventBleConnectedHandle()
 {
     boardPrintf("App: device connected.\r\n");
 
-    if (boardIsOpen() == true)
-    {
-        // turn on the exterior lighting if it's too dark
-        if (boardGetBrightness() <= _taskApp.brightnessTh)
-            taskLightSetColor(COLOR_WHITE, 0);
-        else
-            taskLightSetColor(COLOR_OFF, 0); // Todo allumer la bend LED en blanc mais pas l'éclairage
-    }
-    else
-    {
-        taskLightSetColor(COLOR_GREEN, 0);
-    }
-
     _taskApp.status = APP_STATUS_CONNECTED;
+    _taskAppManageLightColor();
 }
 
 void _taskAppEventBleUnlockHandle()
 {
     boardPrintf("App: unlock the lock.\r\n");
     boardUnlock();
-    taskLightSetColor(COLOR_BLUE, 0);
+
     _taskApp.status = APP_STATUS_UNLOCKED;
+    _taskAppManageLightColor();
 }
 
 void _taskAppEventBleLockHandle()
@@ -236,20 +277,8 @@ void _taskAppEventBleLockHandle()
     boardPrintf("App: Lock the lock.\r\n");
     boardLock();
 
-    if (boardIsOpen() == true)
-    {
-        // turn on the exterior lighting if it's too dark
-        if (boardGetBrightness() <= _taskApp.brightnessTh)
-            taskLightSetColor(COLOR_WHITE, 0);
-        else
-            taskLightSetColor(COLOR_OFF, 0); // Todo allumer la bend LED en blanc mais pas l'éclairage
-    }
-    else
-    {
-        taskLightSetColor(COLOR_GREEN, 0);
-    }
-
     _taskApp.status = APP_STATUS_CONNECTED;
+    _taskAppManageLightColor();
 }
 
 void _taskAppEventBleOpenHandle()
@@ -269,53 +298,16 @@ void _taskAppEventDoorStateHandle()
     taskBleEventDoorState();
 
     if (boardIsOpen() == true)
-    {
         boardPrintf("App: door is open.\r\n");
-
-        switch (_taskApp.status)
-        {
-        case APP_STATUS_DISCONNECTED:
-            taskLightSetColor(COLOR_RED, 0);
-            break;
-
-        case APP_STATUS_CONNECTED:
-        case APP_STATUS_UNLOCKED:
-        {
-            // turn on the exterior lighting if it's too dark
-            if (boardGetBrightness() <= _taskApp.brightnessTh)
-                taskLightSetColor(COLOR_WHITE, 0);
-            else
-                taskLightSetColor(COLOR_OFF, 0); // Todo allumer la bend LED en blanc mais pas l'éclairage
-            break;
-        }
-
-        default:
-            break;
-        }
-    }
     else
     {
         boardPrintf("App: door is close.\r\n");
 
-        switch (_taskApp.status)
-        {
-        case APP_STATUS_DISCONNECTED:
-            taskLightSetColor(COLOR_OFF, 0);
+        if(_taskApp.status == APP_STATUS_DISCONNECTED)
             taskBleEventDiscoverable();
-            break;
-
-        case APP_STATUS_CONNECTED:
-            taskLightSetColor(COLOR_GREEN, 0);
-            break;
-
-        case APP_STATUS_UNLOCKED:
-            taskLightSetColor(COLOR_BLUE, 0);
-            break;
-
-        default:
-            break;
-        }
     }
+
+    _taskAppManageLightColor();
 }
 
 // Send event implemented fonction

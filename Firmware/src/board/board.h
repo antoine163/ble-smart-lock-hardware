@@ -45,7 +45,11 @@ typedef enum
     COLOR_RED,
     COLOR_GREEN,
     COLOR_BLUE,
-    COLOR_WHITE
+    COLOR_YELLOW,
+    COLOR_CYAN,
+    COLOR_MAGENTA,
+    COLOR_WHITE,
+    COLOR_WHITE_LIGHT
 } color_t;
 
 // Prototype functions ---------------------------------------------------------

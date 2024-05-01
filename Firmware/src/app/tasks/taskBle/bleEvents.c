@@ -23,8 +23,13 @@
  */
 
 // Define ----------------------------------------------------------------------
+#define BLE_EVENT_DEBUG 0
+
+#if BLE_EVENT_DEBUG == 1
 #define BLE_EVENT_PRINT(...) boardPrintf(__VA_ARGS__)
-// #define BLE_EVENT_PRINT(...)
+#else
+#define BLE_EVENT_PRINT(...)
+#endif
 
 // Implemented functions -------------------------------------------------------
 
@@ -112,6 +117,7 @@ void hci_le_connection_complete_event(
     __attribute__((unused)) uint16_t Supervision_Timeout,
     __attribute__((unused)) uint8_t Master_Clock_Accuracy)
 {
+#if BLE_EVENT_DEBUG == 1
     BLE_EVENT_PRINT("hci_le_connection_complete_event\r\n");
     BLE_EVENT_PRINT("\tStatus:0x%x\r\n", Status);
     BLE_EVENT_PRINT("\tConnection_Handle:0x%x\r\n", Connection_Handle);
@@ -153,6 +159,7 @@ void hci_le_connection_complete_event(
         break;
     }
     BLE_EVENT_PRINT("\tMaster_Clock_Accuracy:%s\r\n", strMaster_Clock_Accuracy);
+#endif
 
     _taskBle.connectionHandle = Connection_Handle;
     taskAppEventBleConnected();
@@ -253,6 +260,7 @@ void aci_gap_pairing_complete_event(
     __attribute__((unused)) uint8_t Status,
     __attribute__((unused)) uint8_t Reason)
 {
+#if BLE_EVENT_DEBUG == 1
     BLE_EVENT_PRINT("aci_gap_pairing_complete_event\r\n");
     BLE_EVENT_PRINT("\tConnection_Handle:0x%x\r\n", Connection_Handle);
 
@@ -330,6 +338,7 @@ void aci_gap_pairing_complete_event(
 
         BLE_EVENT_PRINT("\t Reason:%s\r\n", strReason);
     }
+#endif
 }
 
 void aci_gap_pass_key_req_event(
@@ -572,7 +581,7 @@ void aci_gatt_read_permit_req_event(
     BLE_EVENT_PRINT("\tOffset:%u\r\n", Offset);
 
     // Update brightness befor read
-    if (Attribute_Handle == _taskBle.brightnessCharAppHandle +1)
+    if (Attribute_Handle == _taskBle.brightnessCharAppHandle + 1)
     {
         float brightness = boardGetBrightness();
         aci_gatt_update_char_value(

@@ -49,7 +49,7 @@
 #include "tasks/taskApp/taskApp.h"
 
 // Define ----------------------------------------------------------------------
-#define _TASK_BLE_DEFAULT_NAME "Ble: Smart Lock"
+#define _TASK_BLE_DEFAULT_NAME "Ble Smart Lock"
 #define _TASK_BLE_NAME_MAX_SIZE 16
 #define _TASK_BLE_ADV_INTERVAL_MIN_MS 1000
 #define _TASK_BLE_ADV_INTERVAL_MAX_MS 1500

@@ -164,7 +164,32 @@ void boardSetLightColor(color_t color)
         GPIO_SetBits(LIGHT_BLUE_PIN);
         break;
     }
+    case COLOR_YELLOW:
+    {
+        GPIO_SetBits(LIGHT_RED_PIN);
+        GPIO_SetBits(LIGHT_GREEN_PIN);
+        break;
+    }
+    case COLOR_CYAN:
+    {
+        GPIO_SetBits(LIGHT_GREEN_PIN);
+        GPIO_SetBits(LIGHT_BLUE_PIN);
+        break;
+    }
+    case COLOR_MAGENTA:
+    {
+        GPIO_SetBits(LIGHT_RED_PIN);
+        GPIO_SetBits(LIGHT_BLUE_PIN);
+        break;
+    }
     case COLOR_WHITE:
+    {
+        GPIO_SetBits(LIGHT_RED_PIN);
+        GPIO_SetBits(LIGHT_GREEN_PIN);
+        GPIO_SetBits(LIGHT_BLUE_PIN);
+        break;
+    }
+    case COLOR_WHITE_LIGHT:
     {
         GPIO_SetBits(LIGHT_WHITE_PIN);
         break;
@@ -186,7 +211,7 @@ void boardSetLightColor(color_t color)
 void boardSetLightDc(float dc)
 {
     // Set duty cycle
-    if (_board.lightColor == COLOR_WHITE)
+    if (_board.lightColor == COLOR_WHITE_LIGHT)
         pwm_setDc(&_board.lightPwm, dc);
     else
         pwm_setDc(&_board.lightPwm, 100. - dc);
