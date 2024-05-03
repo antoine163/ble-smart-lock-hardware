@@ -192,7 +192,7 @@ void _taskAppManageLightColor()
             // Turns on the red light to try to warn the user.
             taskLightSetColor(COLOR_RED, 0);
 
-            // Todo: étendre la lumière rouge dans 15min s'il n'y à pas de nouveau
+            // Todo: éteindre la lumière rouge dans 15min s'il n'y à pas de nouveau
             // événement.
         }
         else
