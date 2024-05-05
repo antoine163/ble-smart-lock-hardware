@@ -61,6 +61,7 @@ typedef enum
 {
     BLE_EVENT_BLE_IT,
     BLE_EVENT_DISCOVERABLE,
+    BLE_EVENT_UNDISCOVERABLE,
     BLE_EVENT_DOOR_STATE
 } taskBleEventType_t;
 
@@ -148,7 +149,8 @@ typedef struct
 
 // Prototype functions ---------------------------------------------------------
 tBleStatus _taskBleInitDevice();
-tBleStatus _taskBleMakeDiscoverable();
+tBleStatus _taskBleDiscoverable();
+tBleStatus _taskBleUndiscoverable();
 tBleStatus _taskBleAddServices();
 const char *_taskBleStatusToStr(tBleStatus status);
 
@@ -157,6 +159,7 @@ static taskBle_t _taskBle = {0};
 
 // Private prototype functions -------------------------------------------------
 void _taskBleEventDiscoverableHandle();
+void _taskBleEventUndiscoverableHandle();
 void _taskBleEventDoorStateHandle();
 
 // Implemented functions -------------------------------------------------------
@@ -206,7 +209,7 @@ void taskBleCode(__attribute__((unused)) void *parameters)
         _taskBle.bleStatus = aci_gatt_update_char_value(
             _taskBle.serviceAppHandle,
             _taskBle.brightnessThCharAppHandle,
-            0, /* Val_Offset */
+            0,             /* Val_Offset */
             sizeof(float), /* Char_Value_Length */
             (uint8_t *)&th);
     }
@@ -231,6 +234,10 @@ void taskBleCode(__attribute__((unused)) void *parameters)
             _taskBleEventDiscoverableHandle();
             break;
 
+        case BLE_EVENT_UNDISCOVERABLE:
+            _taskBleEventUndiscoverableHandle();
+            break;
+
         case BLE_EVENT_DOOR_STATE:
             _taskBleEventDoorStateHandle();
             break;
@@ -246,15 +253,41 @@ void _taskBleEventDiscoverableHandle()
 {
     if (_taskBle.bleStatus == BLE_STATUS_SUCCESS)
     {
-        _taskBle.bleStatus = _taskBleMakeDiscoverable();
-        if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
+        _taskBle.bleStatus = _taskBleDiscoverable();
+        if (_taskBle.bleStatus == BLE_STATUS_NOT_ALLOWED) 
         {
-            boardPrintf("Ble: make discoverable error: %s\r\n",
+            boardPrintf("Ble: already discoverable.\r\n");
+            _taskBle.bleStatus = BLE_STATUS_SUCCESS;
+        }
+        else if (_taskBle.bleStatus != BLE_STATUS_SUCCESS) 
+        {
+            boardPrintf("Ble: discoverable error: %s\r\n",
                         _taskBleStatusToStr(_taskBle.bleStatus));
             taskAppEventBleErr();
         }
         else
             boardPrintf("Ble: is discoverable.\r\n");
+    }
+}
+
+void _taskBleEventUndiscoverableHandle()
+{
+    if (_taskBle.bleStatus == BLE_STATUS_SUCCESS)
+    {
+        _taskBle.bleStatus = _taskBleUndiscoverable();
+        if (_taskBle.bleStatus == BLE_STATUS_NOT_ALLOWED) 
+        {
+            boardPrintf("Ble: already undiscoverable.\r\n");
+            _taskBle.bleStatus = BLE_STATUS_SUCCESS;
+        }
+        else if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
+        {
+            boardPrintf("Ble: undiscoverable error: %s\r\n",
+                        _taskBleStatusToStr(_taskBle.bleStatus));
+            taskAppEventBleErr();
+        }
+        else
+            boardPrintf("Ble: is undiscoverable.\r\n");
     }
 }
 
@@ -287,6 +320,13 @@ void taskBleEventDiscoverable()
 {
     taskBleEvent_t event = {
         .type = BLE_EVENT_DISCOVERABLE};
+    xQueueSend(_taskBle.eventQueue, &event, portMAX_DELAY);
+}
+
+void taskBleEventUndiscoverable()
+{
+    taskBleEvent_t event = {
+        .type = BLE_EVENT_UNDISCOVERABLE};
     xQueueSend(_taskBle.eventQueue, &event, portMAX_DELAY);
 }
 
@@ -492,7 +532,7 @@ tBleStatus _taskBleAddServices()
     return BLE_STATUS_SUCCESS;
 }
 
-tBleStatus _taskBleMakeDiscoverable()
+tBleStatus _taskBleDiscoverable()
 {
     tBleStatus bleStatus;
     uint8_t localName[] = " "_TASK_BLE_DEFAULT_NAME;
@@ -517,6 +557,11 @@ tBleStatus _taskBleMakeDiscoverable()
         return bleStatus;
 
     return BLE_STATUS_SUCCESS;
+}
+
+tBleStatus _taskBleUndiscoverable()
+{
+    return aci_gap_set_non_discoverable();
 }
 
 const char *_taskBleStatusToStr(tBleStatus status)

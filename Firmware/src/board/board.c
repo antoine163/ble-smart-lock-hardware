@@ -43,6 +43,8 @@
 
 #include <tasks/taskApp/taskApp.h>
 
+#include <math.h>
+
 // Struct ------------------------------------------------------------------------
 typedef struct
 {
@@ -210,13 +212,15 @@ void boardSetLightColor(color_t color)
 
 void boardSetLightDc(float dc)
 {
+    // To try to make the perceived brightness more natural in relation to the
+    // cyclic ratio
+    _board.lightDc = expf((dc-100)*0.05)*100;
+
     // Set duty cycle
     if (_board.lightColor == COLOR_WHITE_LIGHT)
-        pwm_setDc(&_board.lightPwm, dc);
+        pwm_setDc(&_board.lightPwm, _board.lightDc);
     else
-        pwm_setDc(&_board.lightPwm, 100. - dc);
-
-    _board.lightDc = dc;
+        pwm_setDc(&_board.lightPwm, 100. - _board.lightDc);
 }
 
 float boardGetBrightness()

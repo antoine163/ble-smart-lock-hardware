@@ -39,13 +39,14 @@
 void taskLightCodeInit();
 void taskLightCode(void *parameters);
 
-void taskLightSetColor(color_t color, unsigned int transTime);
-
-void taskLightAnimTrans(color_t color,
-                        unsigned int timeToOff,
+void taskLightAnimTrans(unsigned int timeToOff,
+                        color_t color,
                         unsigned int timeToOn);
-void taskLightAnimSin(color_t color, float freq);
-void taskLightAnimBlink(color_t color,
+void taskLightAnimSin(unsigned int timeToOff,
+                      color_t color,
+                      float freq);
+void taskLightAnimBlink(unsigned int timeToOff,
+                        color_t color,
                         unsigned int timeOn,
                         unsigned int timeOff);
 

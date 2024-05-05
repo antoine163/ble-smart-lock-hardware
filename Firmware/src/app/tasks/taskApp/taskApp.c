@@ -118,6 +118,7 @@ void taskAppCode(__attribute__((unused)) void *parameters)
     taskAppEvent_t event;
 
     // Make discoverable Ble
+    // Todo: ne pas le fair si la porte est ouverte
     taskBleEventDiscoverable();
 
     while (1)
@@ -176,12 +177,12 @@ void _taskAppManageLightColor()
     switch (_taskApp.status)
     {
     case APP_STATUS_BLE_ERROR:
-        taskLightSetColor(COLOR_RED, 0);
+        taskLightAnimTrans(0, COLOR_RED, 0);
         break;
 
     case APP_STATUS_BONDING:
     {
-        taskLightSetColor(COLOR_YELLOW, 0);
+        taskLightAnimTrans(200, COLOR_YELLOW, 1000);
         break;
     }
     case APP_STATUS_DISCONNECTED:
@@ -190,13 +191,13 @@ void _taskAppManageLightColor()
         {
             // Ble device is disconnected but the door is open.
             // Turns on the red light to try to warn the user.
-            taskLightSetColor(COLOR_RED, 0);
+            taskLightAnimBlink(200, COLOR_RED, 100, 500);
 
             // Todo: éteindre la lumière rouge dans 15min s'il n'y à pas de nouveau
             // événement.
         }
         else
-            taskLightSetColor(COLOR_OFF, 0);
+            taskLightAnimTrans(4000, COLOR_OFF, 0);
 
         break;
     }
@@ -205,7 +206,7 @@ void _taskAppManageLightColor()
         if (boardIsOpen() == true)
             _taskAppSetLightOn();
         else
-            taskLightSetColor(COLOR_GREEN, 0);
+            taskLightAnimSin(200, COLOR_BLUE, 0.2f);
 
         break;
     }
@@ -214,7 +215,7 @@ void _taskAppManageLightColor()
         if (boardIsOpen() == true)
             _taskAppSetLightOn();
         else
-            taskLightSetColor(COLOR_BLUE, 0);
+            taskLightAnimTrans(200, COLOR_BLUE, 500);
 
         break;
     }
@@ -227,14 +228,16 @@ void _taskAppManageLightColor()
 void _taskAppSetLightOn()
 {
     if (boardGetBrightness() <= _taskApp.brightnessTh)
-        taskLightSetColor(COLOR_WHITE_LIGHT, 0);
+        taskLightAnimTrans(200, COLOR_WHITE_LIGHT, 200);
     else
-        taskLightSetColor(COLOR_WHITE, 0);
+        taskLightAnimTrans(200, COLOR_WHITE, 200);
 }
 
 // Handle event implemented fonction
 void _taskAppEventBleErrHandle()
 {
+    // Todo tentative de redémarre dans 1min
+
     boardPrintf("App: ble radio error !\r\n");
     boardLedOn();
 
@@ -246,7 +249,6 @@ void _taskAppEventBleDisconnectedHandle()
 {
     boardPrintf("App: device disconnected.\r\n");
     boardLock();
-    _taskAppManageLightColor();
 
     if (boardIsOpen() == false)
         taskBleEventDiscoverable();
@@ -295,15 +297,19 @@ void _taskAppEventBleOpenHandle()
 
 void _taskAppEventDoorStateHandle()
 {
+    // Update BLE characteristic
     taskBleEventDoorState();
 
     if (boardIsOpen() == true)
+    {
         boardPrintf("App: door is open.\r\n");
+        taskBleEventUndiscoverable();
+    }
     else
     {
         boardPrintf("App: door is close.\r\n");
 
-        if(_taskApp.status == APP_STATUS_DISCONNECTED)
+        if (_taskApp.status == APP_STATUS_DISCONNECTED)
             taskBleEventDiscoverable();
     }
 

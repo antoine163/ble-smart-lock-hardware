@@ -37,6 +37,7 @@ void taskBleCodeInit();
 void taskBleCode(void *parameters);
 
 void taskBleEventDiscoverable();
+void taskBleEventUndiscoverable();
 void taskBleEventDoorState();
 
 #endif // TASK_BLE_H
