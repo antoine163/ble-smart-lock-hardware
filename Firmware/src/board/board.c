@@ -137,6 +137,8 @@ void boardSetLightColor(color_t color)
 
     // Set PWM duty cycle
     boardSetLightDc(_board.lightDc);
+    if (lastColor != _board.lightColor)
+        pwm_clearCounter(&_board.lightPwm);
 
     // On color
     switch (color)
@@ -214,13 +216,15 @@ void boardSetLightDc(float dc)
 {
     // To try to make the perceived brightness more natural in relation to the
     // cyclic ratio
-    _board.lightDc = expf((dc-100)*0.05)*100;
+    float expdc = expf((dc-100)*0.05)*100;
 
     // Set duty cycle
     if (_board.lightColor == COLOR_WHITE_LIGHT)
-        pwm_setDc(&_board.lightPwm, _board.lightDc);
+        pwm_setDc(&_board.lightPwm, expdc);
     else
-        pwm_setDc(&_board.lightPwm, 100. - _board.lightDc);
+        pwm_setDc(&_board.lightPwm, 100. - expdc);
+
+    _board.lightDc = dc;
 }
 
 float boardGetBrightness()

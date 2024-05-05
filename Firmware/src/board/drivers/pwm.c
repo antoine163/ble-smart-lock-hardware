@@ -109,3 +109,8 @@ void pwm_setDc(pwm_t *dev, float duty_cycle)
     dev->periph->TNCRA = (uint16_t)tmcra;
     dev->periph->TNCRB = (uint16_t)tmcrb;
 }
+
+void pwm_clearCounter(pwm_t *dev)
+{
+    dev->periph->TNCNT1 = 0; // Reste counter
+}

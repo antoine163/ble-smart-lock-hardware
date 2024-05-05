@@ -48,5 +48,6 @@ int pwm_deinit(pwm_t *dev);
 int pwm_config(pwm_t *dev, unsigned int frequency);
 
 void pwm_setDc(pwm_t *dev, float duty_cycle);
+void pwm_clearCounter(pwm_t *dev);
 
 #endif // PWM_H

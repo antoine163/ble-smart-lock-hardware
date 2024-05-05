@@ -43,7 +43,7 @@
 #define _TASK_LIGHT_EVENT_QUEUE_LENGTH 8
 
 // Conf animation
-#define ANIM_STEP_TIME 20 // ms
+#define ANIM_STEP_TIME 40 // ms
 
 // Enum ------------------------------------------------------------------------
 typedef enum
@@ -108,20 +108,15 @@ static taskLight_t _taskLight = {0};
 // Prototype functions ---------------------------------------------------------
 TickType_t _taskLightAnim();
 
-void _taskLightInitAnimTrans(unsigned int timeToOff,
-                             color_t color,
-                             unsigned int timeToOn);
+void _taskLightInitAnim(unsigned int timeToOff, color_t color);
+
+void _taskLightInitAnimTrans(unsigned int timeToOn);
 void _taskLightFuncAnimTrans();
 
-void _taskLightInitAnimSin(unsigned int timeToOff,
-                           color_t color,
-                           float freq);
+void _taskLightInitAnimSin(float freq, unsigned int timeToOff);
 void _taskLightFuncAnimSin();
 
-void _taskLightInitAnimBlink(unsigned int timeToOff,
-                             color_t color,
-                             unsigned int timeOn,
-                             unsigned int timeOff);
+void _taskLightInitAnimBlink(unsigned int timeOn, unsigned int timeOff);
 void _taskLightFuncAnimBlink();
 
 // Implemented functions -------------------------------------------------------
@@ -142,25 +137,19 @@ void taskLightCode(__attribute__((unused)) void *parameters)
     {
         if (xQueueReceive(_taskLight.eventQueue, &event, tickToWait) == pdPASS)
         {
+            _taskLightInitAnim(event.timeToOff, event.color);
             switch (event.type)
             {
             case LIGHT_EVENT_ANIM_TRANS:
-                _taskLightInitAnimTrans(event.timeToOff,
-                                        event.color,
-                                        event.transTimeToOn);
+                _taskLightInitAnimTrans(event.transTimeToOn);
                 break;
 
             case LIGHT_EVENT_ANIM_SIN:
-                _taskLightInitAnimSin(event.timeToOff,
-                                      event.color,
-                                      event.sinFreq);
+                _taskLightInitAnimSin(event.sinFreq, event.timeToOff);
                 break;
 
             case LIGHT_EVENT_ANIM_BLINK:
-                _taskLightInitAnimBlink(event.timeToOff,
-                                        event.color,
-                                        event.blinkTimeOn,
-                                        event.blinkTimeOff);
+                _taskLightInitAnimBlink(event.blinkTimeOn, event.blinkTimeOff);
                 break;
 
             default:
@@ -211,19 +200,9 @@ void taskLightAnimBlink(unsigned int timeToOff,
     xQueueSend(_taskLight.eventQueue, &event, portMAX_DELAY);
 }
 
-void _taskLightInitAnimTrans(unsigned int timeToOff,
-                             color_t color,
-                             unsigned int timeToOn)
+void _taskLightInitAnimTrans(unsigned int timeToOn)
 {
-    // Init time off animation
-    if (timeToOff == 0)
-        _taskLight.anim.switchOffDecDc = 100.f;
-    else
-        _taskLight.anim.switchOffDecDc = 100.f / ((float)timeToOff / (float)ANIM_STEP_TIME);
-    _taskLight.anim.switchToOff = (_taskLight.anim.color != color);
-
     // Init time on animation
-    _taskLight.anim.color = color;
     if (timeToOn == 0)
         _taskLight.anim.trandIncDc = 100.f;
     else
@@ -253,19 +232,9 @@ void _taskLightFuncAnimTrans()
     }
 }
 
-void _taskLightInitAnimSin(unsigned int timeToOff,
-                           color_t color,
-                           float freq)
+void _taskLightInitAnimSin(float freq, unsigned int timeToOff)
 {
-    // Init time off animation
-    if (timeToOff == 0)
-        _taskLight.anim.switchOffDecDc = 100.f;
-    else
-        _taskLight.anim.switchOffDecDc = 100.f / ((float)timeToOff / (float)ANIM_STEP_TIME);
-    _taskLight.anim.switchToOff = (_taskLight.anim.color != color); // && (COLOR_OFF != color);
-
     // Init sin animation
-    _taskLight.anim.color = color;
     _taskLight.anim.sinFreq = freq;
 
     if (_taskLight.anim.switchToOff == false)
@@ -307,20 +276,10 @@ void _taskLightFuncAnimSin()
     }
 }
 
-void _taskLightInitAnimBlink(unsigned int timeToOff,
-                             color_t color,
-                             unsigned int timeOn,
+void _taskLightInitAnimBlink(unsigned int timeOn,
                              unsigned int timeOff)
 {
-    // Init time off animation
-    if (timeToOff == 0)
-        _taskLight.anim.switchOffDecDc = 100.f;
-    else
-        _taskLight.anim.switchOffDecDc = 100.f / ((float)timeToOff / (float)ANIM_STEP_TIME);
-    _taskLight.anim.switchToOff = (_taskLight.anim.color != color);
-
     // Init blick animation
-    _taskLight.anim.color = color;
     _taskLight.anim.blinkTicksOn = timeOn / portTICK_PERIOD_MS;
     _taskLight.anim.blinkTicksOff = timeOff / portTICK_PERIOD_MS;
 
@@ -343,7 +302,6 @@ void _taskLightFuncAnimBlink()
             _taskLight.anim.ticksToWait = _taskLight.anim.blinkTicksOff;
             _taskLight.anim.currentDc = 0.f;
             boardSetLightDc(_taskLight.anim.currentDc);
-            boardSetLightColor(COLOR_OFF);
         }
         else
         {
@@ -351,7 +309,6 @@ void _taskLightFuncAnimBlink()
             _taskLight.anim.ticksToWait = _taskLight.anim.blinkTicksOn;
             _taskLight.anim.currentDc = 100.f;
             boardSetLightDc(_taskLight.anim.currentDc);
-            boardSetLightColor(_taskLight.anim.color);
         }
         vTaskSetTimeOutState(&_taskLight.anim.timeOut);
     }
@@ -384,4 +341,26 @@ TickType_t _taskLightAnim()
     }
 
     return _taskLight.anim.ticksToWait;
+}
+
+void _taskLightInitAnim(unsigned int timeToOff, color_t color)
+{
+    // Init time off animation
+    if (timeToOff == 0)
+        _taskLight.anim.switchOffDecDc = 100.f;
+    else
+        _taskLight.anim.switchOffDecDc = 100.f / ((float)timeToOff / (float)ANIM_STEP_TIME);
+
+    _taskLight.anim.switchToOff = (COLOR_OFF != _taskLight.anim.color) &&
+                                  (_taskLight.anim.color != color);
+
+    _taskLight.anim.color = color;
+
+    // Set finale color
+    if (_taskLight.anim.switchToOff == false)
+    {
+        _taskLight.anim.currentDc = 0.f;
+        boardSetLightDc(0.f);
+        boardSetLightColor(_taskLight.anim.color);
+    }
 }

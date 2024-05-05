@@ -89,7 +89,8 @@ typedef struct
 static taskApp_t _taskApp = {0};
 
 // Private prototype functions -------------------------------------------------
-void _taskAppManageLightColor();
+void _taskAppManageLightColor(taskAppStatus_t lastStatus);
+void _taskAppSetStatus(taskAppStatus_t status);
 void _taskAppSetLightOn();
 void _taskAppEventBleErrHandle();
 void _taskAppEventBleDisconnectedHandle();
@@ -172,7 +173,7 @@ void taskAppSetBrightnessTh(float th)
     // Todo: notifier tashApp pour sauvegarder la nouvelle valeur dans la flash.
 }
 
-void _taskAppManageLightColor()
+void _taskAppManageLightColor(taskAppStatus_t lastStatus)
 {
     switch (_taskApp.status)
     {
@@ -191,13 +192,16 @@ void _taskAppManageLightColor()
         {
             // Ble device is disconnected but the door is open.
             // Turns on the red light to try to warn the user.
-            taskLightAnimBlink(200, COLOR_RED, 100, 500);
+            taskLightAnimBlink(0, COLOR_RED, 100, 500);
 
             // Todo: éteindre la lumière rouge dans 15min s'il n'y à pas de nouveau
             // événement.
         }
-        else
+        else if ((APP_STATUS_CONNECTED == lastStatus) ||
+                 (APP_STATUS_UNLOCKED == lastStatus))
             taskLightAnimTrans(4000, COLOR_OFF, 0);
+        else
+            taskLightAnimTrans(0, COLOR_OFF, 0);
 
         break;
     }
@@ -225,6 +229,13 @@ void _taskAppManageLightColor()
     }
 }
 
+void _taskAppSetStatus(taskAppStatus_t status)
+{
+    taskAppStatus_t lastStatus = _taskApp.status;
+    _taskApp.status = status;
+    _taskAppManageLightColor(lastStatus);
+}
+
 void _taskAppSetLightOn()
 {
     if (boardGetBrightness() <= _taskApp.brightnessTh)
@@ -241,8 +252,7 @@ void _taskAppEventBleErrHandle()
     boardPrintf("App: ble radio error !\r\n");
     boardLedOn();
 
-    _taskApp.status = APP_STATUS_BLE_ERROR;
-    _taskAppManageLightColor();
+    _taskAppSetStatus(APP_STATUS_BLE_ERROR);
 }
 
 void _taskAppEventBleDisconnectedHandle()
@@ -253,16 +263,14 @@ void _taskAppEventBleDisconnectedHandle()
     if (boardIsOpen() == false)
         taskBleEventDiscoverable();
 
-    _taskApp.status = APP_STATUS_DISCONNECTED;
-    _taskAppManageLightColor();
+    _taskAppSetStatus(APP_STATUS_DISCONNECTED);
 }
 
 void _taskAppEventBleConnectedHandle()
 {
     boardPrintf("App: device connected.\r\n");
 
-    _taskApp.status = APP_STATUS_CONNECTED;
-    _taskAppManageLightColor();
+    _taskAppSetStatus(APP_STATUS_CONNECTED);
 }
 
 void _taskAppEventBleUnlockHandle()
@@ -270,8 +278,7 @@ void _taskAppEventBleUnlockHandle()
     boardPrintf("App: unlock the lock.\r\n");
     boardUnlock();
 
-    _taskApp.status = APP_STATUS_UNLOCKED;
-    _taskAppManageLightColor();
+    _taskAppSetStatus(APP_STATUS_UNLOCKED);
 }
 
 void _taskAppEventBleLockHandle()
@@ -279,8 +286,7 @@ void _taskAppEventBleLockHandle()
     boardPrintf("App: Lock the lock.\r\n");
     boardLock();
 
-    _taskApp.status = APP_STATUS_CONNECTED;
-    _taskAppManageLightColor();
+    _taskAppSetStatus(APP_STATUS_CONNECTED);
 }
 
 void _taskAppEventBleOpenHandle()
@@ -313,7 +319,7 @@ void _taskAppEventDoorStateHandle()
             taskBleEventDiscoverable();
     }
 
-    _taskAppManageLightColor();
+    _taskAppManageLightColor(_taskApp.status);
 }
 
 // Send event implemented fonction
