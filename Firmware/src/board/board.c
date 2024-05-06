@@ -72,6 +72,7 @@ static void _boardInitGpio();
 static void _boardInitUart();
 static void _boardInitPwm();
 static void _boardInitAdc();
+static void _boardEnableIo(bool enable);
 
 // Global variables ------------------------------------------------------------
 board_t _board = {
@@ -98,9 +99,6 @@ void boardInit()
     _boardInitUart();
     _boardInitPwm();
     _boardInitAdc();
-
-    // Todo a supprimer
-    boardEnableIo(true);
 }
 
 int boardPrintf(char const *format, ...)
@@ -119,9 +117,18 @@ int boardPrintf(char const *format, ...)
     return n;
 }
 
-void boardEnableIo(bool enable)
+void _boardEnableIo(bool enable)
 {
-    GPIO_WriteBit(EN_IO_PIN, enable);
+    if (enable == true)
+    {
+        if (GPIO_ReadBit(EN_IO_PIN) == Bit_RESET)
+        {
+            GPIO_WriteBit(EN_IO_PIN, Bit_SET);
+            vTaskDelay(100/portTICK_PERIOD_MS); // Wait stabilizing
+        }
+    }
+    else
+        GPIO_WriteBit(EN_IO_PIN, Bit_RESET);
 }
 
 void boardSetLightColor(color_t color)
@@ -145,6 +152,8 @@ void boardSetLightColor(color_t color)
     {
     case COLOR_OFF:
     {
+        _boardEnableIo(false);
+
         // Disable PWM Pin
         GPIO_InitType GPIO_InitStruct;
         GPIO_StructInit(&GPIO_InitStruct);
@@ -209,6 +218,8 @@ void boardSetLightColor(color_t color)
         GPIO_InitStruct.GPIO_Pin = LIGHT_PWM_PIN;
         GPIO_InitStruct.GPIO_Mode = LIGHT_PWM_MODE_PWM;
         GPIO_Init(&GPIO_InitStruct);
+
+        _boardEnableIo(true);
     }
 }
 
@@ -229,8 +240,11 @@ void boardSetLightDc(float dc)
 
 float boardGetBrightness()
 {
+    _boardEnableIo(true);
     adc_config(&_board.sensorAdc, ADC_CH_PIN1);
     float val = adc_convert_voltage(&_board.sensorAdc);
+    _boardEnableIo(_board.lightColor != COLOR_OFF);
+
     return 100.0f - val * 100.0f / 3.3f;
 }
 

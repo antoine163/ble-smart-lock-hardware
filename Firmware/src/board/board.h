@@ -56,10 +56,6 @@ typedef enum
 void boardInit();
 int boardPrintf(char const *format, ...);
 
-// Todo: gérer boardEnableIo en interne dans l'api board
-// et donc supprimer cette fonction
-void boardEnableIo(bool enable);
-
 void boardSetLightColor(color_t color);
 void boardSetLightDc(float dc);
 
