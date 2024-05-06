@@ -354,17 +354,18 @@ void _taskLightInitAnim(unsigned int timeToOff, color_t color)
     _taskLight.anim.switchToOff = (COLOR_OFF != _taskLight.anim.color) &&
                                   (_taskLight.anim.color != color);
 
-    _taskLight.anim.color = color;
-
     // Init time
     _taskLight.anim.ticksToWait = 0;
     vTaskSetTimeOutState(&_taskLight.anim.timeOut);
 
     // Set finale color
-    if (_taskLight.anim.switchToOff == false)
+    if ((_taskLight.anim.switchToOff == false) &&
+        (_taskLight.anim.color != color))
     {
         _taskLight.anim.currentDc = 0.f;
         boardSetLightDc(0.f);
-        boardSetLightColor(_taskLight.anim.color);
+        boardSetLightColor(color);
     }
+
+    _taskLight.anim.color = color;
 }
