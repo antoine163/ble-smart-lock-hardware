@@ -118,9 +118,11 @@ void taskAppCode(__attribute__((unused)) void *parameters)
 {
     taskAppEvent_t event;
 
-    // Make discoverable Ble
-    // Todo: ne pas le fair si la porte est ouverte
-    taskBleEventDiscoverable();
+    // Make discoverable Ble if door is closed
+    if (boardIsOpen() == false)
+        taskBleEventDiscoverable();
+    else
+        _taskAppSetLightOn();
 
     while (1)
     {

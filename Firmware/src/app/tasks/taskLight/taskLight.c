@@ -356,6 +356,10 @@ void _taskLightInitAnim(unsigned int timeToOff, color_t color)
 
     _taskLight.anim.color = color;
 
+    // Init time
+    _taskLight.anim.ticksToWait = 0;
+    vTaskSetTimeOutState(&_taskLight.anim.timeOut);
+
     // Set finale color
     if (_taskLight.anim.switchToOff == false)
     {
