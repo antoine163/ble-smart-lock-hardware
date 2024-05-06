@@ -248,7 +248,7 @@ void _taskAppSetLightOn()
     if (boardGetBrightness() <= _taskApp.brightnessTh)
         taskLightAnimTrans(200, COLOR_WHITE_LIGHT, 200);
     else
-        taskLightAnimTrans(200, COLOR_WHITE, 200);
+        taskLightAnimTrans(200, COLOR_YELLOW, 200);
 }
 
 // Handle event implemented fonction

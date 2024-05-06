@@ -226,9 +226,15 @@ void taskBleCode(__attribute__((unused)) void *parameters)
         switch (event.type)
         {
         case BLE_EVENT_BLE_IT:
+        {
+            boardLedOn();
+
             while (BlueNRG_Stack_Perform_Deep_Sleep_Check() == SLEEPMODE_RUNNING)
                 BTLE_StackTick();
+
+            boardLedOff();
             break;
+        }
 
         case BLE_EVENT_DISCOVERABLE:
             _taskBleEventDiscoverableHandle();
@@ -254,12 +260,12 @@ void _taskBleEventDiscoverableHandle()
     if (_taskBle.bleStatus == BLE_STATUS_SUCCESS)
     {
         _taskBle.bleStatus = _taskBleDiscoverable();
-        if (_taskBle.bleStatus == BLE_STATUS_NOT_ALLOWED) 
+        if (_taskBle.bleStatus == BLE_STATUS_NOT_ALLOWED)
         {
             boardPrintf("Ble: already discoverable.\r\n");
             _taskBle.bleStatus = BLE_STATUS_SUCCESS;
         }
-        else if (_taskBle.bleStatus != BLE_STATUS_SUCCESS) 
+        else if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
         {
             boardPrintf("Ble: discoverable error: %s\r\n",
                         _taskBleStatusToStr(_taskBle.bleStatus));
@@ -275,7 +281,7 @@ void _taskBleEventUndiscoverableHandle()
     if (_taskBle.bleStatus == BLE_STATUS_SUCCESS)
     {
         _taskBle.bleStatus = _taskBleUndiscoverable();
-        if (_taskBle.bleStatus == BLE_STATUS_NOT_ALLOWED) 
+        if (_taskBle.bleStatus == BLE_STATUS_NOT_ALLOWED)
         {
             boardPrintf("Ble: already undiscoverable.\r\n");
             _taskBle.bleStatus = BLE_STATUS_SUCCESS;

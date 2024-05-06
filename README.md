@@ -1,5 +1,5 @@
 # Bluetooth LE Smart Lock
-Ce project est une serrure électronique à déverrouillage par Bluetooth Low Energie.  
+Ce projet consiste en une serrure électronique pouvant être déverrouillée via Bluetooth Low Energy. 
 
 Il est constitué de 4 parties:
 - D'une carte électronique basée sur le module [bluenrg-m2](https://www.st.com/en/wireless-connectivity/bluenrg-m2.html).
@@ -19,16 +19,26 @@ Il est constitué de 4 parties:
 
 ### États de la serrure
 
-| BLE           | Serrure | Éclairage ambience  | Éclairage extérieur   | Voyant Bouton |
+| BLE           | Porte   | Éclairage ambience  | Éclairage extérieur   | Voyant Bouton |
 | ------------- | :-----: | :------:            | :------:              | :----:        |
+| Appairage     |         | Vert clignotent     | Éteint                | Éteint        |
+| Erreur radio  |         | Rouge fixe          | Éteint                | Éteint        |
+||
 | Non connecté  | Fermé   | Éteint              | Éteint                | Éteint        |
-| Connecté      | Fermé   | Vert                | Éteint                | Éteint        |
-| Déverrouillé  | Fermé   | Bleu                | Éteint                | **Allumé**    | 
+| Connecté      | Fermé   | Bleu sinusoïdale    | Éteint                | **Allumé** sinusoïdale|
+| Déverrouillé  | Fermé   | Bleu fixe           | Éteint                | **Allumé** fixe| 
 ||                              
-| Non connecté  | Ouvert  | Rouge               | Éteint                | Éteint        |
-| Connecté      | Ouvert  | **Blanc**           | **Allumé**            | Éteint        |
-| Déverrouillé  | Ouvert  | **Blanc**           | **Allumé**            | Éteint        |
+| Non connecté (déconnexion)                    | Ouvert  | Rouge clignotent    | Éteint            | Éteint        |  
+| Non connecté (ouverture par clef \| démange)  | Ouvert  | **Blanc** (Nuit) \| Jaune (jour)    | **Allumé** (Nuit) \| Éteint (jour)        | Éteint        |
+| Connecté                                      | Ouvert  | **Blanc** (Nuit) \| Jaune (jour)    | **Allumé** (Nuit) \| Éteint (jour)        | Éteint        |
+| Déverrouillé                                  | Ouvert  | **Blanc** (Nuit) \| Jaune (jour)    | **Allumé** (Nuit) \| Éteint (jour)        | Éteint        |
 
+
+## Appairage
+...
+
+## Led rouge
+La led rouge se trouvent sur le PCB atteste principalement de l’activité radio, mais clignote en mode ampérage.
 
 # Fonctionnalités
 
