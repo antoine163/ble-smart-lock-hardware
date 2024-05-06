@@ -284,10 +284,10 @@ void _taskLightInitAnimBlink(unsigned int timeOn,
     _taskLight.anim.blinkTicksOff = timeOff / portTICK_PERIOD_MS;
 
     // Init time
-    _taskLight.anim.ticksToWait = _taskLight.anim.blinkTicksOn;
+    _taskLight.anim.ticksToWait = _taskLight.anim.blinkTicksOff;
     vTaskSetTimeOutState(&_taskLight.anim.timeOut);
 
-    _taskLight.anim.blinkOn = true;
+    _taskLight.anim.blinkOn = false;
     _taskLight.anim.func = _taskLightFuncAnimBlink;
 }
 
