@@ -216,7 +216,7 @@ void boardSetLightDc(float dc)
 {
     // To try to make the perceived brightness more natural in relation to the
     // cyclic ratio
-    float expdc = expf((dc-100)*0.05)*100;
+    float expdc = 1.0067836549063043 * expf((dc-100)*0.05)*100 - 0.678365490630423;
 
     // Set duty cycle
     if (_board.lightColor == COLOR_WHITE_LIGHT)
