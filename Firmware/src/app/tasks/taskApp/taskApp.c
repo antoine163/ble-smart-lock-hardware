@@ -41,7 +41,9 @@
 
 // Define ----------------------------------------------------------------------
 #define _TASK_APP_EVENT_QUEUE_LENGTH 8
-#define _TASK_APP_DEFAULT_BRIGHTNESS_THRESHOLD 50.f // 50%
+#define _TASK_APP_DEFAULT_BRIGHTNESS_THRESHOLD 50.f           //!< Default threshold: 50%
+#define RESTART_DELAY_TICK (1 * 60 * 1000 / portTICK_PERIOD_MS)   //!< Tick to wait before restarting following error detection: 1min
+#define OFF_LIGHT_DELAY_TICK (15 * 60 * 1000 / portTICK_PERIOD_MS) //!< Tick to wait before torn off light following disconnection: 15min
 
 // Enum ------------------------------------------------------------------------
 typedef enum
@@ -81,6 +83,14 @@ typedef struct
     // App status
     taskAppStatus_t status;
 
+    // Timeout to manage reset follows an error
+    TickType_t ticksToRestart;
+    TimeOut_t timeOutRestart;
+
+    // Timeout to manage light off follows an disconnection.
+    TickType_t ticksToOffLight;
+    TimeOut_t timeOutOffLight;
+
     // App conf
     float brightnessTh;
 } taskApp_t;
@@ -109,6 +119,8 @@ void taskAppCodeInit()
                                              &_taskApp.eventStaticQueue);
 
     _taskApp.status = APP_STATUS_DISCONNECTED;
+    _taskApp.ticksToRestart = portMAX_DELAY;
+    _taskApp.ticksToOffLight = portMAX_DELAY;
 
     // Todo: Lir la valeur à partie de la flash
     _taskApp.brightnessTh = _TASK_APP_DEFAULT_BRIGHTNESS_THRESHOLD;
@@ -121,45 +133,68 @@ void taskAppCode(__attribute__((unused)) void *parameters)
     // Make discoverable Ble if door is closed
     if (boardIsOpen() == false)
         taskBleEventDiscoverable();
-    else
+    else // Or the door is opened
+    {
         _taskAppSetLightOn();
+
+        // Turn off the red light in 15 minutes if there are no new.
+        // events.
+        _taskApp.ticksToOffLight = OFF_LIGHT_DELAY_TICK;
+        vTaskSetTimeOutState(&_taskApp.timeOutOffLight);
+    }
 
     while (1)
     {
-        xQueueReceive(_taskApp.eventQueue, &event, portMAX_DELAY);
+        TickType_t ticksToWait = _taskApp.ticksToRestart;
+        if (_taskApp.ticksToOffLight < ticksToWait)
+            ticksToWait = _taskApp.ticksToOffLight;
 
-        switch (event.type)
+        if (xQueueReceive(_taskApp.eventQueue, &event, ticksToWait) == pdPASS)
         {
-        case APP_EVENT_BLE_ERR:
-            _taskAppEventBleErrHandle();
-            break;
+            switch (event.type)
+            {
+            case APP_EVENT_BLE_ERR:
+                _taskAppEventBleErrHandle();
+                break;
 
-        case APP_EVENT_BLE_CONNECTED:
-            _taskAppEventBleConnectedHandle();
-            break;
+            case APP_EVENT_BLE_CONNECTED:
+                _taskAppEventBleConnectedHandle();
+                break;
 
-        case APP_EVENT_BLE_DISCONNECTED:
-            _taskAppEventBleDisconnectedHandle();
-            break;
+            case APP_EVENT_BLE_DISCONNECTED:
+                _taskAppEventBleDisconnectedHandle();
+                break;
 
-        case APP_EVENT_BLE_UNLOCK:
-            _taskAppEventBleUnlockHandle();
-            break;
+            case APP_EVENT_BLE_UNLOCK:
+                _taskAppEventBleUnlockHandle();
+                break;
 
-        case APP_EVENT_BLE_LOCK:
-            _taskAppEventBleLockHandle();
-            break;
+            case APP_EVENT_BLE_LOCK:
+                _taskAppEventBleLockHandle();
+                break;
 
-        case APP_EVENT_BLE_OPEN:
-            _taskAppEventBleOpenHandle();
-            break;
+            case APP_EVENT_BLE_OPEN:
+                _taskAppEventBleOpenHandle();
+                break;
 
-        case APP_EVENT_DOOR_STATE:
-            _taskAppEventDoorStateHandle();
-            break;
+            case APP_EVENT_DOOR_STATE:
+                _taskAppEventDoorStateHandle();
+                break;
 
-        default:
-            break;
+            default:
+                break;
+            }
+        }
+
+        if (xTaskCheckForTimeOut(&_taskApp.timeOutRestart, &_taskApp.ticksToRestart) != pdFALSE)
+        {
+            NVIC_SystemReset();
+        }
+
+        if (xTaskCheckForTimeOut(&_taskApp.timeOutOffLight, &_taskApp.ticksToOffLight) != pdFALSE)
+        {
+            _taskApp.ticksToOffLight = portMAX_DELAY;
+            taskLightAnimTrans(0, COLOR_OFF, 0);
         }
     }
 }
@@ -181,11 +216,13 @@ void _taskAppManageLightColor(taskAppStatus_t lastStatus)
     {
     case APP_STATUS_BLE_ERROR:
         taskLightAnimTrans(0, COLOR_RED, 0);
+        // Note: the device will be reset in 1min
         break;
 
     case APP_STATUS_BONDING:
     {
         taskLightAnimTrans(200, COLOR_YELLOW, 1000);
+        // Todo: set timeout to stop bond
         break;
     }
     case APP_STATUS_DISCONNECTED:
@@ -193,15 +230,25 @@ void _taskAppManageLightColor(taskAppStatus_t lastStatus)
         if (boardIsOpen() == true)
         {
             if ((APP_STATUS_DISCONNECTED == lastStatus))
+            {
+                // Here, the door was opened with the key.
                 _taskAppSetLightOn();
+
+                // Turn off the red light in 15 minutes if there are no new.
+                // events.
+                _taskApp.ticksToOffLight = OFF_LIGHT_DELAY_TICK;
+                vTaskSetTimeOutState(&_taskApp.timeOutOffLight);
+            }
             else
             {
                 // Ble device is disconnected but the door is open.
                 // Turns on the red light to try to warn the user.
                 taskLightAnimBlink(0, COLOR_RED, 100, 500);
 
-                // Todo: éteindre la lumière rouge dans 15min s'il n'y à pas de nouveau
-                // événement.
+                // Turn off the red light in 15 minutes if there are no new.
+                // events.
+                _taskApp.ticksToOffLight = OFF_LIGHT_DELAY_TICK;
+                vTaskSetTimeOutState(&_taskApp.timeOutOffLight);
             }
         }
         else if ((APP_STATUS_CONNECTED == lastStatus) ||
@@ -254,10 +301,12 @@ void _taskAppSetLightOn()
 // Handle event implemented fonction
 void _taskAppEventBleErrHandle()
 {
-    // Todo tentative de redémarre dans 1min
-
     boardPrintf("App: ble radio error !\r\n");
     boardLedOn();
+
+    // Init time to restart into 1min
+    _taskApp.ticksToRestart = RESTART_DELAY_TICK;
+    vTaskSetTimeOutState(&_taskApp.timeOutRestart);
 
     _taskAppSetStatus(APP_STATUS_BLE_ERROR);
 }
