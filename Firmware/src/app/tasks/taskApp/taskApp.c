@@ -190,12 +190,17 @@ void _taskAppManageLightColor(taskAppStatus_t lastStatus)
     {
         if (boardIsOpen() == true)
         {
-            // Ble device is disconnected but the door is open.
-            // Turns on the red light to try to warn the user.
-            taskLightAnimBlink(0, COLOR_RED, 100, 500);
+            if ((APP_STATUS_DISCONNECTED == lastStatus))
+                _taskAppSetLightOn();
+            else
+            {
+                // Ble device is disconnected but the door is open.
+                // Turns on the red light to try to warn the user.
+                taskLightAnimBlink(0, COLOR_RED, 100, 500);
 
-            // Todo: éteindre la lumière rouge dans 15min s'il n'y à pas de nouveau
-            // événement.
+                // Todo: éteindre la lumière rouge dans 15min s'il n'y à pas de nouveau
+                // événement.
+            }
         }
         else if ((APP_STATUS_CONNECTED == lastStatus) ||
                  (APP_STATUS_UNLOCKED == lastStatus))
