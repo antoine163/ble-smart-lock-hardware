@@ -31,54 +31,40 @@
 
 // Include ---------------------------------------------------------------------
 #include "taskApp.h"
-#include "board.h"
 #include "tasks/taskLight/taskLight.h"
-#include "tasks/taskBle/taskBle.h"
 
 #include <FreeRTOS.h>
 #include <task.h>
 #include <queue.h>
 
 // Define ----------------------------------------------------------------------
+#define _TASK_APP_DEFAULT_BRIGHTNESS_THRESHOLD 50.f                          //!< Default threshold: 50%
+#define _TASK_APP_RESTART_DELAY_TICK (1 * 60 * 1000 / portTICK_PERIOD_MS)    //!< Tick to wait before restarting following error detection: 1min
+#define _TASK_APP_OFF_LIGHT_DELAY_TICK (15 * 60 * 1000 / portTICK_PERIOD_MS) //!< Tick to wait before torn off light following disconnection: 15min
 #define _TASK_APP_EVENT_QUEUE_LENGTH 8
-#define _TASK_APP_DEFAULT_BRIGHTNESS_THRESHOLD 50.f           //!< Default threshold: 50%
-#define RESTART_DELAY_TICK (1 * 60 * 1000 / portTICK_PERIOD_MS)   //!< Tick to wait before restarting following error detection: 1min
-#define OFF_LIGHT_DELAY_TICK (15 * 60 * 1000 / portTICK_PERIOD_MS) //!< Tick to wait before torn off light following disconnection: 15min
 
 // Enum ------------------------------------------------------------------------
 typedef enum
 {
-    APP_STATUS_BLE_ERROR,    //!< Indicates a ble radio error.
-    APP_STATUS_BONDING,      //!< Indicates that the device is bonding.
-    APP_STATUS_DISCONNECTED, //!< Indicates that the device is disconnected.
-    APP_STATUS_CONNECTED,    //!< Indicates that the device is connected.
-    APP_STATUS_UNLOCKED      //!< Indicates that the device is unlocked.
+    _TASK_APP_STATUS_BLE_ERROR,    //!< Indicates a ble radio error.
+    _TASK_APP_STATUS_BONDING,      //!< Indicates that the device is bonding.
+    _TASK_APP_STATUS_DISCONNECTED, //!< Indicates that the device is disconnected.
+    _TASK_APP_STATUS_CONNECTED,    //!< Indicates that the device is connected.
+    _TASK_APP_STATUS_UNLOCKED      //!< Indicates that the device is unlocked.
 } taskAppStatus_t;
-
-typedef enum
-{
-    APP_EVENT_BLE_ERR,
-    APP_EVENT_BLE_CONNECTED,
-    APP_EVENT_BLE_DISCONNECTED,
-    APP_EVENT_BLE_UNLOCK,
-    APP_EVENT_BLE_LOCK,
-    APP_EVENT_BLE_OPEN,
-    APP_EVENT_BUTTON_BOND,
-    APP_EVENT_DOOR_STATE
-} taskAppEventType_t;
 
 // Struct ----------------------------------------------------------------------
 typedef struct
 {
-    taskAppEventType_t type;
-} taskAppEvent_t;
+    boardEvent_t boardEvent;
+} taskAppEventItem_t;
 
 typedef struct
 {
     // Event queue
     QueueHandle_t eventQueue;
     StaticQueue_t eventStaticQueue;
-    uint8_t eventQueueStorageArea[sizeof(taskAppEvent_t) * _TASK_APP_EVENT_QUEUE_LENGTH];
+    uint8_t eventQueueStorageArea[sizeof(taskAppEventItem_t) * _TASK_APP_EVENT_QUEUE_LENGTH];
 
     // App status
     taskAppStatus_t status;
@@ -100,25 +86,28 @@ static taskApp_t _taskApp = {0};
 
 // Private prototype functions -------------------------------------------------
 void _taskAppManageLightColor(taskAppStatus_t lastStatus);
+
 void _taskAppSetStatus(taskAppStatus_t status);
 void _taskAppSetLightOn();
-void _taskAppEventBleErrHandle();
-void _taskAppEventBleDisconnectedHandle();
-void _taskAppEventBleConnectedHandle();
-void _taskAppEventBleUnlockHandle();
-void _taskAppEventBleLockHandle();
-void _taskAppEventBleOpenHandle();
-void _taskAppEventDoorStateHandle();
+
+void _taskAppBleEventErrHandle();
+void _taskAppBleEventDisconnectedHandle();
+void _taskAppBleEventConnectedHandle();
+
+void _taskAppBleEventLockHandle();
+
+void _taskAppBoardEventDoorStateHandle();
+void _taskAppBoardEventButtonBondStateHandle();
 
 // Implemented functions -------------------------------------------------------
 void taskAppCodeInit()
 {
     _taskApp.eventQueue = xQueueCreateStatic(_TASK_APP_EVENT_QUEUE_LENGTH,
-                                             sizeof(taskAppEvent_t),
+                                             sizeof(taskAppEventItem_t),
                                              _taskApp.eventQueueStorageArea,
                                              &_taskApp.eventStaticQueue);
 
-    _taskApp.status = APP_STATUS_DISCONNECTED;
+    _taskApp.status = _TASK_APP_STATUS_DISCONNECTED;
     _taskApp.ticksToRestart = portMAX_DELAY;
     _taskApp.ticksToOffLight = portMAX_DELAY;
 
@@ -128,18 +117,16 @@ void taskAppCodeInit()
 
 void taskAppCode(__attribute__((unused)) void *parameters)
 {
-    taskAppEvent_t event;
+    taskAppEventItem_t eventItem;
 
-    // Make discoverable Ble if door is closed
-    if (boardIsOpen() == false)
-        taskBleEventDiscoverable();
-    else // Or the door is opened
+    // /Door is open ?
+    if (boardIsOpen() == true)
     {
         _taskAppSetLightOn();
 
         // Turn off the red light in 15 minutes if there are no new.
         // events.
-        _taskApp.ticksToOffLight = OFF_LIGHT_DELAY_TICK;
+        _taskApp.ticksToOffLight = _TASK_APP_OFF_LIGHT_DELAY_TICK;
         vTaskSetTimeOutState(&_taskApp.timeOutOffLight);
     }
 
@@ -149,36 +136,16 @@ void taskAppCode(__attribute__((unused)) void *parameters)
         if (_taskApp.ticksToOffLight < ticksToWait)
             ticksToWait = _taskApp.ticksToOffLight;
 
-        if (xQueueReceive(_taskApp.eventQueue, &event, ticksToWait) == pdPASS)
+        if (xQueueReceive(_taskApp.eventQueue, &eventItem, ticksToWait) == pdPASS)
         {
-            switch (event.type)
+            switch (eventItem.boardEvent)
             {
-            case APP_EVENT_BLE_ERR:
-                _taskAppEventBleErrHandle();
+            case BOARD_EVENT_DOOR_STATE:
+                _taskAppBoardEventDoorStateHandle();
                 break;
 
-            case APP_EVENT_BLE_CONNECTED:
-                _taskAppEventBleConnectedHandle();
-                break;
-
-            case APP_EVENT_BLE_DISCONNECTED:
-                _taskAppEventBleDisconnectedHandle();
-                break;
-
-            case APP_EVENT_BLE_UNLOCK:
-                _taskAppEventBleUnlockHandle();
-                break;
-
-            case APP_EVENT_BLE_LOCK:
-                _taskAppEventBleLockHandle();
-                break;
-
-            case APP_EVENT_BLE_OPEN:
-                _taskAppEventBleOpenHandle();
-                break;
-
-            case APP_EVENT_DOOR_STATE:
-                _taskAppEventDoorStateHandle();
+            case BOARD_EVENT_BUTTON_BOND_STATE:
+                _taskAppBoardEventButtonBondStateHandle();
                 break;
 
             default:
@@ -207,36 +174,61 @@ float taskAppGetBrightnessTh()
 void taskAppSetBrightnessTh(float th)
 {
     _taskApp.brightnessTh = th;
-    // Todo: notifier tashApp pour sauvegarder la nouvelle valeur dans la flash.
+    // Todo: notifier _taskApp pour sauvegarder la nouvelle valeur dans la flash.
+    // Ou directement sovgarder ici
+}
+
+void taskAppUnlock()
+{
+    if (_taskApp.status == _TASK_APP_STATUS_CONNECTED)
+    {
+        boardPrintf("App: unlock the lock.\r\n");
+        boardUnlock();
+        _taskAppSetStatus(_TASK_APP_STATUS_UNLOCKED);
+    }
+    else
+        boardPrintf("App: Can't unlock if unconnected device.\r\n");
+}
+
+void taskAppOpenDoor()
+{
+    if (boardIsLocked() == true)
+    {
+        boardPrintf("App: the lock is loked, can't open.\r\n");
+        return;
+    }
+
+    boardPrintf("App: open the foor.\r\n");
+    boardOpen();
 }
 
 void _taskAppManageLightColor(taskAppStatus_t lastStatus)
 {
     switch (_taskApp.status)
     {
-    case APP_STATUS_BLE_ERROR:
+    case _TASK_APP_STATUS_BLE_ERROR:
         taskLightAnimTrans(0, COLOR_RED, 0);
         // Note: the device will be reset in 1min
         break;
 
-    case APP_STATUS_BONDING:
+    case _TASK_APP_STATUS_BONDING:
     {
         taskLightAnimTrans(200, COLOR_YELLOW, 1000);
         // Todo: set timeout to stop bond
         break;
     }
-    case APP_STATUS_DISCONNECTED:
+    case _TASK_APP_STATUS_DISCONNECTED:
     {
         if (boardIsOpen() == true)
         {
-            if ((APP_STATUS_DISCONNECTED == lastStatus))
+            if ((_TASK_APP_STATUS_DISCONNECTED == lastStatus))
             {
                 // Here, the door was opened with the key.
                 _taskAppSetLightOn();
 
                 // Turn off the red light in 15 minutes if there are no new.
                 // events.
-                _taskApp.ticksToOffLight = OFF_LIGHT_DELAY_TICK;
+                _taskApp.ticksToOffLight = _TASK_APP_OFF_LIGHT_DELAY_TICK;
                 vTaskSetTimeOutState(&_taskApp.timeOutOffLight);
             }
             else
@@ -247,19 +239,19 @@ void _taskAppManageLightColor(taskAppStatus_t lastStatus)
 
                 // Turn off the red light in 15 minutes if there are no new.
                 // events.
-                _taskApp.ticksToOffLight = OFF_LIGHT_DELAY_TICK;
+                _taskApp.ticksToOffLight = _TASK_APP_OFF_LIGHT_DELAY_TICK;
                 vTaskSetTimeOutState(&_taskApp.timeOutOffLight);
             }
         }
-        else if ((APP_STATUS_CONNECTED == lastStatus) ||
-                 (APP_STATUS_UNLOCKED == lastStatus))
+        else if ((_TASK_APP_STATUS_CONNECTED == lastStatus) ||
+                 (_TASK_APP_STATUS_UNLOCKED == lastStatus))
             taskLightAnimTrans(4000, COLOR_OFF, 0);
         else
             taskLightAnimTrans(0, COLOR_OFF, 0);
 
         break;
     }
-    case APP_STATUS_CONNECTED:
+    case _TASK_APP_STATUS_CONNECTED:
     {
         if (boardIsOpen() == true)
             _taskAppSetLightOn();
@@ -268,7 +260,7 @@ void _taskAppManageLightColor(taskAppStatus_t lastStatus)
 
         break;
     }
-    case APP_STATUS_UNLOCKED:
+    case _TASK_APP_STATUS_UNLOCKED:
     {
         if (boardIsOpen() == true)
             _taskAppSetLightOn();
@@ -299,137 +291,82 @@ void _taskAppSetLightOn()
 }
 
 // Handle event implemented fonction
-void _taskAppEventBleErrHandle()
+void _taskAppBleEventErrHandle()
 {
     boardPrintf("App: ble radio error !\r\n");
     boardLedOn();
 
     // Init time to restart into 1min
-    _taskApp.ticksToRestart = RESTART_DELAY_TICK;
+    _taskApp.ticksToRestart = _TASK_APP_RESTART_DELAY_TICK;
     vTaskSetTimeOutState(&_taskApp.timeOutRestart);
 
-    _taskAppSetStatus(APP_STATUS_BLE_ERROR);
+    _taskAppSetStatus(_TASK_APP_STATUS_BLE_ERROR);
 }
 
-void _taskAppEventBleDisconnectedHandle()
+void _taskAppBleEventDisconnectedHandle()
 {
     boardPrintf("App: device disconnected.\r\n");
     boardLock();
-
-    if (boardIsOpen() == false)
-        taskBleEventDiscoverable();
-
-    _taskAppSetStatus(APP_STATUS_DISCONNECTED);
+    _taskAppSetStatus(_TASK_APP_STATUS_DISCONNECTED);
 }
 
-void _taskAppEventBleConnectedHandle()
+void _taskAppBleEventConnectedHandle()
 {
     boardPrintf("App: device connected.\r\n");
-
-    _taskAppSetStatus(APP_STATUS_CONNECTED);
+    _taskAppSetStatus(_TASK_APP_STATUS_CONNECTED);
 }
 
-void _taskAppEventBleUnlockHandle()
-{
-    boardPrintf("App: unlock the lock.\r\n");
-    boardUnlock();
-
-    _taskAppSetStatus(APP_STATUS_UNLOCKED);
-}
-
-void _taskAppEventBleLockHandle()
+void _taskAppBleEventLockHandle()
 {
     boardPrintf("App: Lock the lock.\r\n");
     boardLock();
 
-    _taskAppSetStatus(APP_STATUS_CONNECTED);
+    _taskAppSetStatus(_TASK_APP_STATUS_CONNECTED);
 }
 
-void _taskAppEventBleOpenHandle()
-{
-    if (boardIsLocked() == true)
-    {
-        boardPrintf("App: the lock is loked, can't open.\r\n");
-        return;
-    }
-
-    boardPrintf("App: open the lock.\r\n");
-    boardOpen();
-}
-
-void _taskAppEventDoorStateHandle()
+void _taskAppBoardEventDoorStateHandle()
 {
     // Update BLE characteristic
-    taskBleEventDoorState();
+    // taskBleEventDoorState();
 
     if (boardIsOpen() == true)
-    {
         boardPrintf("App: door is open.\r\n");
-        taskBleEventUndiscoverable();
-    }
     else
-    {
         boardPrintf("App: door is close.\r\n");
-
-        if (_taskApp.status == APP_STATUS_DISCONNECTED)
-            taskBleEventDiscoverable();
-    }
 
     _taskAppManageLightColor(_taskApp.status);
 }
 
+void _taskAppBoardEventButtonBondStateHandle()
+{
+    if (_taskApp.status != _TASK_APP_STATUS_BONDING)
+    {
+        _taskAppSetStatus(_TASK_APP_STATUS_BONDING);
+        taskBleEnableBonding(true);
+    }
+}
+
 // Send event implemented fonction
-void taskAppEventBondFromISR(BaseType_t *pxHigherPriorityTaskWoken)
+void boardSendEventFromISR(boardEvent_t event,
+                           BaseType_t *pxHigherPriorityTaskWoken)
 {
-    if (_taskApp.eventQueue != NULL)
+    taskAppEventItem_t eventItem = {
+        .boardEvent = event};
+    xQueueSendFromISR(_taskApp.eventQueue, &eventItem, pxHigherPriorityTaskWoken);
+}
+
+void taskBleSendEvent(bleEvent_t event)
+{
+    switch (event)
     {
-        taskAppEvent_t event = {
-            .type = APP_EVENT_BUTTON_BOND};
-        xQueueSendFromISR(_taskApp.eventQueue, &event, pxHigherPriorityTaskWoken);
+    case BLE_EVENT_ERR:
+        _taskAppBleEventErrHandle();
+        break;
+    case BLE_EVENT_CONNECTED:
+        _taskAppBleEventConnectedHandle();
+        break;
+    case BLE_EVENT_DISCONNECTED:
+        _taskAppBleEventDisconnectedHandle();
+        break;
     }
-}
-
-void taskAppEventDoorStateFromISR(BaseType_t *pxHigherPriorityTaskWoken)
-{
-    if (_taskApp.eventQueue != NULL)
-    {
-        taskAppEvent_t event = {
-            .type = APP_EVENT_DOOR_STATE};
-        xQueueSendFromISR(_taskApp.eventQueue, &event, pxHigherPriorityTaskWoken);
-    }
-}
-
-void taskAppEventBleErr()
-{
-    taskAppEvent_t event = {
-        .type = APP_EVENT_BLE_ERR};
-    xQueueSend(_taskApp.eventQueue, &event, portMAX_DELAY);
-}
-
-void taskAppEventBleConnected()
-{
-    taskAppEvent_t event = {
-        .type = APP_EVENT_BLE_CONNECTED};
-    xQueueSend(_taskApp.eventQueue, &event, portMAX_DELAY);
-}
-
-void taskAppEventBleDisconnected()
-{
-    taskAppEvent_t event = {
-        .type = APP_EVENT_BLE_DISCONNECTED};
-    xQueueSend(_taskApp.eventQueue, &event, portMAX_DELAY);
-}
-
-void taskAppEventBleUnlock()
-{
-    taskAppEvent_t event = {
-        .type = APP_EVENT_BLE_UNLOCK};
-    xQueueSend(_taskApp.eventQueue, &event, portMAX_DELAY);
-}
-
-void taskAppEventBleOpen()
-{
-    taskAppEvent_t event = {
-        .type = APP_EVENT_BLE_OPEN};
-    xQueueSend(_taskApp.eventQueue, &event, portMAX_DELAY);
 }

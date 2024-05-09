@@ -23,7 +23,7 @@
  */
 
 // Define ----------------------------------------------------------------------
-#define BLE_EVENT_DEBUG 0
+#define BLE_EVENT_DEBUG 1
 
 #if BLE_EVENT_DEBUG == 1
 #define BLE_EVENT_PRINT(...) boardPrintf(__VA_ARGS__)
@@ -43,67 +43,8 @@ void hci_disconnection_complete_event(
     BLE_EVENT_PRINT("\tConnection_Handle:0x%x\r\n", Connection_Handle);
     BLE_EVENT_PRINT("\tReason:0x%x\r\n", Reason);
 
-    taskAppEventBleDisconnected();
-}
-
-void hci_encryption_change_event(
-    __attribute__((unused)) uint8_t Status,
-    __attribute__((unused)) uint16_t Connection_Handle,
-    __attribute__((unused)) uint8_t Encryption_Enabled)
-{
-    BLE_EVENT_PRINT("hci_encryption_change_event\r\n");
-    BLE_EVENT_PRINT("\tStatus:0x%x\r\n", Status);
-    BLE_EVENT_PRINT("\tConnection_Handle:0x%x\r\n", Connection_Handle);
-    BLE_EVENT_PRINT("\tEncryption_Enabled:%s\r\n",
-                    (Encryption_Enabled = 0x00) ? "Link Level Encryption OFF" : "Link Level Encryption is ON with AES-CCM");
-}
-
-void hci_read_remote_version_information_complete_event(
-    __attribute__((unused)) uint8_t Status,
-    __attribute__((unused)) uint16_t Connection_Handle,
-    __attribute__((unused)) uint8_t Version,
-    __attribute__((unused)) uint16_t Manufacturer_Name,
-    __attribute__((unused)) uint16_t Subversion)
-{
-    BLE_EVENT_PRINT("hci_read_remote_version_information_complete_event\r\n");
-}
-
-void hci_hardware_error_event(
-    __attribute__((unused)) uint8_t Hardware_Code)
-{
-    BLE_EVENT_PRINT("hci_hardware_error_event\r\n");
-}
-
-void hci_number_of_completed_packets_event(
-    __attribute__((unused)) uint8_t Number_of_Handles,
-    __attribute__((unused)) Handle_Packets_Pair_Entry_t Handle_Packets_Pair_Entry[])
-{
-    BLE_EVENT_PRINT("hci_number_of_completed_packets_event\r\n");
-}
-
-void hci_data_buffer_overflow_event(
-    __attribute__((unused)) uint8_t Link_Type)
-{
-    BLE_EVENT_PRINT("hci_data_buffer_overflow_event\r\n");
-}
-
-void hci_encryption_key_refresh_complete_event(
-    __attribute__((unused)) uint8_t Status,
-    __attribute__((unused)) uint16_t Connection_Handle)
-{
-    BLE_EVENT_PRINT("hci_encryption_key_refresh_complete_event\r\n");
-}
-
-tBleStatus hci_rx_acl_data_event(
-    __attribute__((unused)) uint16_t Connection_Handle,
-    __attribute__((unused)) uint8_t PB_Flag,
-    __attribute__((unused)) uint8_t BC_Flag,
-    __attribute__((unused)) uint16_t Data_Length,
-    __attribute__((unused)) uint8_t *PDU_Data)
-{
-    BLE_EVENT_PRINT("hci_rx_acl_data_event\r\n");
-
-    return BLE_STATUS_SUCCESS;
+    _taskBle.action = _TASK_BLE_ACTION_DO_ADVERTISING;
+    taskBleSendEvent(BLE_EVENT_DISCONNECTED);
 }
 
 void hci_le_connection_complete_event(
@@ -121,11 +62,11 @@ void hci_le_connection_complete_event(
     BLE_EVENT_PRINT("hci_le_connection_complete_event\r\n");
     BLE_EVENT_PRINT("\tStatus:0x%x\r\n", Status);
     BLE_EVENT_PRINT("\tConnection_Handle:0x%x\r\n", Connection_Handle);
-    BLE_EVENT_PRINT("\tRole:0x%x\r\n",
+    BLE_EVENT_PRINT("\tRole:%s\r\n",
                     (Role == 0x00) ? "Master" : "Slave");
-    BLE_EVENT_PRINT("\tPeer_Address_Type:0x%x\r\n",
+    BLE_EVENT_PRINT("\tPeer_Address_Type:%s\r\n",
                     (Peer_Address_Type == 0x00) ? "Public Device Address" : "Random Device Address");
-    BLE_EVENT_PRINT("\tPeer_Address:0x%x%x%x%x%x%x\r\n", Peer_Address[0], Peer_Address[1], Peer_Address[2], Peer_Address[3], Peer_Address[4], Peer_Address[5]);
+    BLE_EVENT_PRINT("\tPeer_Address:0x%x%x%x%x%x%x\r\n", Peer_Address[5], Peer_Address[4], Peer_Address[3], Peer_Address[2], Peer_Address[1], Peer_Address[0]);
     BLE_EVENT_PRINT("\tConn_Interval:%u ms\r\n", (int)((float)Conn_Interval * 1.25));
     BLE_EVENT_PRINT("\tConn_Latency:0x%x\r\n", Conn_Latency);
     BLE_EVENT_PRINT("\tSupervision_Timeout:%u ms\r\n", (unsigned int)Supervision_Timeout * 10);
@@ -162,69 +103,8 @@ void hci_le_connection_complete_event(
 #endif
 
     _taskBle.connectionHandle = Connection_Handle;
-    taskAppEventBleConnected();
-}
-
-void hci_le_advertising_report_event(
-    __attribute__((unused)) uint8_t Num_Reports,
-    __attribute__((unused)) Advertising_Report_t Advertising_Report[])
-{
-    BLE_EVENT_PRINT("hci_le_advertising_report_event\r\n");
-}
-
-void hci_le_connection_update_complete_event(
-    __attribute__((unused)) uint8_t Status,
-    __attribute__((unused)) uint16_t Connection_Handle,
-    __attribute__((unused)) uint16_t Conn_Interval,
-    __attribute__((unused)) uint16_t Conn_Latency,
-    __attribute__((unused)) uint16_t Supervision_Timeout)
-{
-    BLE_EVENT_PRINT("hci_le_connection_update_complete_event\r\n");
-    BLE_EVENT_PRINT("\tStatus:0x%x\r\n", Status);
-    BLE_EVENT_PRINT("\tConnection_Handle:0x%x\r\n", Connection_Handle);
-    BLE_EVENT_PRINT("\tConn_Interval:%u ms\r\n", (int)((float)Conn_Interval * 1.25));
-    BLE_EVENT_PRINT("\tConn_Latency:0x%x\r\n", Conn_Latency);
-    BLE_EVENT_PRINT("\tSupervision_Timeout:%u ms\r\n", (unsigned int)Supervision_Timeout * 10);
-}
-
-void hci_le_read_remote_used_features_complete_event(
-    __attribute__((unused)) uint8_t Status,
-    __attribute__((unused)) uint16_t Connection_Handle,
-    __attribute__((unused)) uint8_t LE_Features[8])
-{
-    BLE_EVENT_PRINT("hci_le_read_remote_used_features_complete_event\r\n");
-}
-
-void hci_le_long_term_key_request_event(
-    __attribute__((unused)) uint16_t Connection_Handle,
-    __attribute__((unused)) uint8_t Random_Number[8],
-    __attribute__((unused)) uint16_t Encrypted_Diversifier)
-{
-    BLE_EVENT_PRINT("hci_le_long_term_key_request_event\r\n");
-}
-
-void hci_le_data_length_change_event(
-    __attribute__((unused)) uint16_t Connection_Handle,
-    __attribute__((unused)) uint16_t MaxTxOctets,
-    __attribute__((unused)) uint16_t MaxTxTime,
-    __attribute__((unused)) uint16_t MaxRxOctets,
-    __attribute__((unused)) uint16_t MaxRxTime)
-{
-    BLE_EVENT_PRINT("hci_le_data_length_change_event\r\n");
-}
-
-void hci_le_read_local_p256_public_key_complete_event(
-    __attribute__((unused)) uint8_t Status,
-    __attribute__((unused)) uint8_t Local_P256_Public_Key[64])
-{
-    BLE_EVENT_PRINT("hci_le_read_local_p256_public_key_complete_event\r\n");
-}
-
-void hci_le_generate_dhkey_complete_event(
-    __attribute__((unused)) uint8_t Status,
-    __attribute__((unused)) uint8_t DHKey[32])
-{
-    BLE_EVENT_PRINT("hci_le_generate_dhkey_complete_event\r\n");
+    _taskBle.action = _TASK_BLE_ACTION_DO_SLAVE_SECURITY_REQUEST;
+    taskBleSendEvent(BLE_EVENT_CONNECTED);
 }
 
 void hci_le_enhanced_connection_complete_event(
@@ -240,19 +120,55 @@ void hci_le_enhanced_connection_complete_event(
     __attribute__((unused)) uint16_t Supervision_Timeout,
     __attribute__((unused)) uint8_t Master_Clock_Accuracy)
 {
+#if BLE_EVENT_DEBUG == 1
     BLE_EVENT_PRINT("hci_le_enhanced_connection_complete_event\r\n");
-}
+    BLE_EVENT_PRINT("\tStatus:0x%x\r\n", Status);
+    BLE_EVENT_PRINT("\tConnection_Handle:0x%x\r\n", Connection_Handle);
+    BLE_EVENT_PRINT("\tRole:%s\r\n",
+                    (Role == 0x00) ? "Master" : "Slave");
+    BLE_EVENT_PRINT("\tPeer_Address_Type:%s\r\n",
+                    (Peer_Address_Type == 0x00) ? "Public Device Address" : "Random Device Address");
+    BLE_EVENT_PRINT("\tPeer_Address:0x%x%x%x%x%x%x\r\n", Peer_Address[5], Peer_Address[4], Peer_Address[3], Peer_Address[2], Peer_Address[1], Peer_Address[0]);
+    BLE_EVENT_PRINT("\tLocal_Resolvable_Private_Address:0x%x%x%x%x%x%x\r\n", Local_Resolvable_Private_Address[5], Local_Resolvable_Private_Address[4], Local_Resolvable_Private_Address[3], Local_Resolvable_Private_Address[2], Local_Resolvable_Private_Address[1], Local_Resolvable_Private_Address[0]);
+    BLE_EVENT_PRINT("\tPeer_Resolvable_Private_Address:0x%x%x%x%x%x%x\r\n", Peer_Resolvable_Private_Address[5], Peer_Resolvable_Private_Address[4], Peer_Resolvable_Private_Address[3], Peer_Resolvable_Private_Address[2], Peer_Resolvable_Private_Address[1], Peer_Resolvable_Private_Address[0]);
+    BLE_EVENT_PRINT("\tConn_Interval:%u ms\r\n", (int)((float)Conn_Interval * 1.25));
+    BLE_EVENT_PRINT("\tConn_Latency:0x%x\r\n", Conn_Latency);
+    BLE_EVENT_PRINT("\tSupervision_Timeout:%u ms\r\n", (unsigned int)Supervision_Timeout * 10);
 
-void hci_le_direct_advertising_report_event(
-    __attribute__((unused)) uint8_t Num_Reports,
-    __attribute__((unused)) Direct_Advertising_Report_t Direct_Advertising_Report[])
-{
-    BLE_EVENT_PRINT("hci_le_direct_advertising_report_event\r\n");
-}
+    char *strMaster_Clock_Accuracy = "";
+    switch (Master_Clock_Accuracy)
+    {
+    case 0x00:
+        strMaster_Clock_Accuracy = "500 ppm";
+        break;
+    case 0x01:
+        strMaster_Clock_Accuracy = "250 ppm";
+        break;
+    case 0x02:
+        strMaster_Clock_Accuracy = "150 ppm";
+        break;
+    case 0x03:
+        strMaster_Clock_Accuracy = "100 ppm";
+        break;
+    case 0x04:
+        strMaster_Clock_Accuracy = "75 ppm";
+        break;
+    case 0x05:
+        strMaster_Clock_Accuracy = "50 ppm";
+        break;
+    case 0x06:
+        strMaster_Clock_Accuracy = "30 ppm";
+        break;
+    case 0x07:
+        strMaster_Clock_Accuracy = "20 ppm";
+        break;
+    }
+    BLE_EVENT_PRINT("\tMaster_Clock_Accuracy:%s\r\n", strMaster_Clock_Accuracy);
+#endif
 
-void aci_gap_limited_discoverable_event(void)
-{
-    BLE_EVENT_PRINT("aci_gap_limited_discoverable_event\r\n");
+    _taskBle.connectionHandle = Connection_Handle;
+    _taskBle.action = _TASK_BLE_ACTION_DO_SLAVE_SECURITY_REQUEST;
+    taskBleSendEvent(BLE_EVENT_CONNECTED);
 }
 
 void aci_gap_pairing_complete_event(
@@ -339,6 +255,227 @@ void aci_gap_pairing_complete_event(
         BLE_EVENT_PRINT("\t Reason:%s\r\n", strReason);
     }
 #endif
+
+    // If success and bonding mode
+    if ((Status == 0x00) && (_taskBle.bonding == true))
+        _taskBle.action = _TASK_BLE_ACTION_DO_CONFIGURE_WHITELIST;
+}
+
+void aci_gatt_attribute_modified_event(
+    __attribute__((unused)) uint16_t Connection_Handle,
+    __attribute__((unused)) uint16_t Attr_Handle,
+    __attribute__((unused)) uint16_t Offset,
+    __attribute__((unused)) uint16_t Attr_Data_Length,
+    __attribute__((unused)) uint8_t Attr_Data[])
+{
+    BLE_EVENT_PRINT("aci_gatt_attribute_modified_event\r\n");
+    BLE_EVENT_PRINT("\tConnection_Handle:0x%x\r\n", Connection_Handle);
+    BLE_EVENT_PRINT("\tAttr_Handle:0x%x\r\n", Attr_Handle);
+    BLE_EVENT_PRINT("\tOffset:%u\r\n", Offset);
+    BLE_EVENT_PRINT("\tAttr_Data_Length:%u\r\n", Attr_Data_Length);
+
+    // 'Attribute profile service' from 0x0001 to 0x0004
+    // Service changed
+    if (Attr_Handle == 0x0002)
+    {
+    }
+
+    // 'Generic access profile (GAP) service' from 0x0005 to 0x000b
+    // Device name
+    else if (Attr_Handle == 0x0006)
+    {
+    }
+    // Appearance
+    else if (Attr_Handle == 0x0008)
+    {
+    }
+    // Peripheral preferred connection parameters
+    else if (Attr_Handle == 0x000a)
+    {
+    }
+    // Central address resolution
+    // It is added only when controller-based privacy (0x02) is enabled on aci_gap_init() API
+    else if (Attr_Handle == 0x000c)
+    {
+    }
+
+    // -- Application attributs --
+    // Commend to unlock lock
+    else if (Attr_Handle == _taskBle.lockStateCharAppHandle + 1)
+    {
+        if (Attr_Data[0] == 0x01)
+            taskAppUnlock();
+    }
+    // Commend to open door
+    else if (Attr_Handle == _taskBle.openDoorCharAppHandle + 1)
+    {
+        if (Attr_Data[0] == 0x01)
+            taskAppOpenDoor();
+    }
+    // Commend to set brightness threshold
+    else if (Attr_Handle == _taskBle.brightnessThCharAppHandle + 1)
+    {
+    }
+}
+
+void aci_gatt_read_permit_req_event(
+    __attribute__((unused)) uint16_t Connection_Handle,
+    __attribute__((unused)) uint16_t Attribute_Handle,
+    __attribute__((unused)) uint16_t Offset)
+{
+    BLE_EVENT_PRINT("aci_gatt_read_permit_req_event\r\n");
+    BLE_EVENT_PRINT("\tConnection_Handle:0x%x\r\n", Connection_Handle);
+    BLE_EVENT_PRINT("\tAttribute_Handle:0x%x\r\n", Attribute_Handle);
+    BLE_EVENT_PRINT("\tOffset:%u\r\n", Offset);
+
+    // Todo: à déplacer dans le core de la tache Ble
+    // Update brightness befor read
+    if (Attribute_Handle == _taskBle.brightnessCharAppHandle + 1)
+    {
+        float brightness = boardGetBrightness();
+        aci_gatt_update_char_value(
+            _taskBle.serviceAppHandle,
+            _taskBle.brightnessCharAppHandle,
+            0,             /* Val_Offset */
+            sizeof(float), /* Char_Value_Length */
+            (uint8_t *)&brightness);
+    }
+
+    aci_gatt_allow_read(Connection_Handle);
+}
+
+void hci_encryption_change_event(
+    __attribute__((unused)) uint8_t Status,
+    __attribute__((unused)) uint16_t Connection_Handle,
+    __attribute__((unused)) uint8_t Encryption_Enabled)
+{
+    BLE_EVENT_PRINT("hci_encryption_change_event\r\n");
+    BLE_EVENT_PRINT("\tStatus:0x%x\r\n", Status);
+    BLE_EVENT_PRINT("\tConnection_Handle:0x%x\r\n", Connection_Handle);
+    BLE_EVENT_PRINT("\tEncryption_Enabled:%s\r\n",
+                    (Encryption_Enabled = 0x00) ? "Link Level Encryption OFF" : "Link Level Encryption is ON with AES-CCM");
+}
+
+void hci_read_remote_version_information_complete_event(
+    __attribute__((unused)) uint8_t Status,
+    __attribute__((unused)) uint16_t Connection_Handle,
+    __attribute__((unused)) uint8_t Version,
+    __attribute__((unused)) uint16_t Manufacturer_Name,
+    __attribute__((unused)) uint16_t Subversion)
+{
+    BLE_EVENT_PRINT("hci_read_remote_version_information_complete_event\r\n");
+}
+
+void hci_hardware_error_event(
+    __attribute__((unused)) uint8_t Hardware_Code)
+{
+    BLE_EVENT_PRINT("hci_hardware_error_event\r\n");
+}
+
+void hci_number_of_completed_packets_event(
+    __attribute__((unused)) uint8_t Number_of_Handles,
+    __attribute__((unused)) Handle_Packets_Pair_Entry_t Handle_Packets_Pair_Entry[])
+{
+    BLE_EVENT_PRINT("hci_number_of_completed_packets_event\r\n");
+}
+
+void hci_data_buffer_overflow_event(
+    __attribute__((unused)) uint8_t Link_Type)
+{
+    BLE_EVENT_PRINT("hci_data_buffer_overflow_event\r\n");
+}
+
+void hci_encryption_key_refresh_complete_event(
+    __attribute__((unused)) uint8_t Status,
+    __attribute__((unused)) uint16_t Connection_Handle)
+{
+    BLE_EVENT_PRINT("hci_encryption_key_refresh_complete_event\r\n");
+}
+
+tBleStatus hci_rx_acl_data_event(
+    __attribute__((unused)) uint16_t Connection_Handle,
+    __attribute__((unused)) uint8_t PB_Flag,
+    __attribute__((unused)) uint8_t BC_Flag,
+    __attribute__((unused)) uint16_t Data_Length,
+    __attribute__((unused)) uint8_t *PDU_Data)
+{
+    BLE_EVENT_PRINT("hci_rx_acl_data_event\r\n");
+
+    return BLE_STATUS_SUCCESS;
+}
+
+void hci_le_advertising_report_event(
+    __attribute__((unused)) uint8_t Num_Reports,
+    __attribute__((unused)) Advertising_Report_t Advertising_Report[])
+{
+    BLE_EVENT_PRINT("hci_le_advertising_report_event\r\n");
+}
+
+void hci_le_connection_update_complete_event(
+    __attribute__((unused)) uint8_t Status,
+    __attribute__((unused)) uint16_t Connection_Handle,
+    __attribute__((unused)) uint16_t Conn_Interval,
+    __attribute__((unused)) uint16_t Conn_Latency,
+    __attribute__((unused)) uint16_t Supervision_Timeout)
+{
+    BLE_EVENT_PRINT("hci_le_connection_update_complete_event\r\n");
+    BLE_EVENT_PRINT("\tStatus:0x%x\r\n", Status);
+    BLE_EVENT_PRINT("\tConnection_Handle:0x%x\r\n", Connection_Handle);
+    BLE_EVENT_PRINT("\tConn_Interval:%u ms\r\n", (int)((float)Conn_Interval * 1.25));
+    BLE_EVENT_PRINT("\tConn_Latency:0x%x\r\n", Conn_Latency);
+    BLE_EVENT_PRINT("\tSupervision_Timeout:%u ms\r\n", (unsigned int)Supervision_Timeout * 10);
+}
+
+void hci_le_read_remote_used_features_complete_event(
+    __attribute__((unused)) uint8_t Status,
+    __attribute__((unused)) uint16_t Connection_Handle,
+    __attribute__((unused)) uint8_t LE_Features[8])
+{
+    BLE_EVENT_PRINT("hci_le_read_remote_used_features_complete_event\r\n");
+}
+
+void hci_le_long_term_key_request_event(
+    __attribute__((unused)) uint16_t Connection_Handle,
+    __attribute__((unused)) uint8_t Random_Number[8],
+    __attribute__((unused)) uint16_t Encrypted_Diversifier)
+{
+    BLE_EVENT_PRINT("hci_le_long_term_key_request_event\r\n");
+}
+
+void hci_le_data_length_change_event(
+    __attribute__((unused)) uint16_t Connection_Handle,
+    __attribute__((unused)) uint16_t MaxTxOctets,
+    __attribute__((unused)) uint16_t MaxTxTime,
+    __attribute__((unused)) uint16_t MaxRxOctets,
+    __attribute__((unused)) uint16_t MaxRxTime)
+{
+    BLE_EVENT_PRINT("hci_le_data_length_change_event\r\n");
+}
+
+void hci_le_read_local_p256_public_key_complete_event(
+    __attribute__((unused)) uint8_t Status,
+    __attribute__((unused)) uint8_t Local_P256_Public_Key[64])
+{
+    BLE_EVENT_PRINT("hci_le_read_local_p256_public_key_complete_event\r\n");
+}
+
+void hci_le_generate_dhkey_complete_event(
+    __attribute__((unused)) uint8_t Status,
+    __attribute__((unused)) uint8_t DHKey[32])
+{
+    BLE_EVENT_PRINT("hci_le_generate_dhkey_complete_event\r\n");
+}
+
+void hci_le_direct_advertising_report_event(
+    __attribute__((unused)) uint8_t Num_Reports,
+    __attribute__((unused)) Direct_Advertising_Report_t Direct_Advertising_Report[])
+{
+    BLE_EVENT_PRINT("hci_le_direct_advertising_report_event\r\n");
+}
+
+void aci_gap_limited_discoverable_event(void)
+{
+    BLE_EVENT_PRINT("aci_gap_limited_discoverable_event\r\n");
 }
 
 void aci_gap_pass_key_req_event(
@@ -391,43 +528,6 @@ void aci_gap_keypress_notification_event(
     __attribute__((unused)) uint8_t Notification_Type)
 {
     BLE_EVENT_PRINT("aci_gap_keypress_notification_event\r\n");
-}
-
-void aci_gatt_attribute_modified_event(
-    __attribute__((unused)) uint16_t Connection_Handle,
-    __attribute__((unused)) uint16_t Attr_Handle,
-    __attribute__((unused)) uint16_t Offset,
-    __attribute__((unused)) uint16_t Attr_Data_Length,
-    __attribute__((unused)) uint8_t Attr_Data[])
-{
-    BLE_EVENT_PRINT("aci_gatt_attribute_modified_event\r\n");
-    BLE_EVENT_PRINT("\tConnection_Handle:0x%x\r\n", Connection_Handle);
-    BLE_EVENT_PRINT("\tAttr_Handle:0x%x\r\n", Attr_Handle);
-    BLE_EVENT_PRINT("\tOffset:%u\r\n", Offset);
-    BLE_EVENT_PRINT("\tAttr_Data_Length:%u\r\n", Attr_Data_Length);
-
-    // Commend to unlock lock
-    if (Attr_Handle == _taskBle.lockStateCharAppHandle + 1)
-    {
-        if (Attr_Data[0] == 0x01)
-        {
-            taskAppEventBleUnlock();
-        }
-    }
-
-    // Commend to open door
-    else if (Attr_Handle == _taskBle.openDoorCharAppHandle + 1)
-    {
-        if (Attr_Data[0] == 0x01)
-        {
-            taskAppEventBleOpen();
-        }
-    }
-
-    // Commend to set brightness threshold
-    else if (Attr_Handle == _taskBle.brightnessThCharAppHandle + 1)
-    {
-    }
 }
 
 void aci_gatt_proc_timeout_event(
@@ -568,31 +668,6 @@ void aci_gatt_write_permit_req_event(
     __attribute__((unused)) uint8_t Data[])
 {
     BLE_EVENT_PRINT("aci_gatt_write_permit_req_event\r\n");
-}
-
-void aci_gatt_read_permit_req_event(
-    __attribute__((unused)) uint16_t Connection_Handle,
-    __attribute__((unused)) uint16_t Attribute_Handle,
-    __attribute__((unused)) uint16_t Offset)
-{
-    BLE_EVENT_PRINT("aci_gatt_read_permit_req_event\r\n");
-    BLE_EVENT_PRINT("\tConnection_Handle:0x%x\r\n", Connection_Handle);
-    BLE_EVENT_PRINT("\tAttribute_Handle:0x%x\r\n", Attribute_Handle);
-    BLE_EVENT_PRINT("\tOffset:%u\r\n", Offset);
-
-    // Update brightness befor read
-    if (Attribute_Handle == _taskBle.brightnessCharAppHandle + 1)
-    {
-        float brightness = boardGetBrightness();
-        aci_gatt_update_char_value(
-            _taskBle.serviceAppHandle,
-            _taskBle.brightnessCharAppHandle,
-            0,             /* Val_Offset */
-            sizeof(float), /* Char_Value_Length */
-            (uint8_t *)&brightness);
-    }
-
-    aci_gatt_allow_read(Connection_Handle);
 }
 
 void aci_gatt_read_multi_permit_req_event(

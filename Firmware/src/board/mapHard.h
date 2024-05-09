@@ -22,8 +22,8 @@
  * SOFTWARE.
  */
 
-#ifndef BOARD_IO_H
-#define BOARD_IO_H
+#ifndef MAP_HARD_H
+#define MAP_HARD_H
 
 // IN
 #define BOND_PIN                GPIO_Pin_7
@@ -57,10 +57,8 @@
 // UART
 #define UART_RX_PIN             GPIO_Pin_11
 #define UART_RX_MODE            Serial1_Mode
-#define UART_RX_FIFO_SIZE       32
 
 #define UART_TX_PIN             GPIO_Pin_8
 #define UART_TX_MODE            Serial1_Mode
-#define UART_TX_FIFO_SIZE       1024
 
-#endif // BOARD_IO_H
+#endif // MAP_HARD_H

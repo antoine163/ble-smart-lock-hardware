@@ -2,17 +2,17 @@
  * The MIT License (MIT)
  *
  * Copyright (c) 2024 antoine163
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -34,6 +34,8 @@
 
 // Include ---------------------------------------------------------------------
 #include <FreeRTOS.h>
+#include "tasks/taskBle/taskBle.h"
+#include "board.h"
 
 // Prototype functions ---------------------------------------------------------
 void taskAppCodeInit();
@@ -42,15 +44,7 @@ void taskAppCode(void *parameters);
 float taskAppGetBrightnessTh();
 void taskAppSetBrightnessTh(float th);
 
-// Event prototype fonction
-void taskAppEventBondFromISR(BaseType_t* pxHigherPriorityTaskWoken);
-void taskAppEventDoorStateFromISR(BaseType_t* pxHigherPriorityTaskWoken);
-
-void taskAppEventBleErr();
-void taskAppEventBleConnected();
-void taskAppEventBleDisconnected();
-
-void taskAppEventBleUnlock();
-void taskAppEventBleOpen();
+void taskAppUnlock();
+void taskAppOpenDoor();
 
 #endif // TASK_APP_H

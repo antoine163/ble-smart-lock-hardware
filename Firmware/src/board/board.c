@@ -45,13 +45,17 @@
 
 #include <math.h>
 
-// Struct ------------------------------------------------------------------------
+// Define ----------------------------------------------------------------------
+#define _BOARD_UART_RX_FIFO_SIZE       32
+#define _BOARD_UART_TX_FIFO_SIZE       1024
+
+// Struct ----------------------------------------------------------------------
 typedef struct
 {
     // Serial section
     uart_t serial;
-    uint8_t serialBufTx[UART_TX_FIFO_SIZE];
-    uint8_t serialBufRx[UART_RX_FIFO_SIZE];
+    uint8_t serialBufTx[_BOARD_UART_TX_FIFO_SIZE];
+    uint8_t serialBufRx[_BOARD_UART_RX_FIFO_SIZE];
     SemaphoreHandle_t serialSemaphore;
     StaticSemaphore_t serialMutexBuffer;
 
@@ -124,7 +128,7 @@ void _boardEnableIo(bool enable)
         if (GPIO_ReadBit(EN_IO_PIN) == Bit_RESET)
         {
             GPIO_WriteBit(EN_IO_PIN, Bit_SET);
-            vTaskDelay(100/portTICK_PERIOD_MS); // Wait stabilizing
+            vTaskDelay(100 / portTICK_PERIOD_MS); // Wait stabilizing
         }
     }
     else
@@ -227,7 +231,7 @@ void boardSetLightDc(float dc)
 {
     // To try to make the perceived brightness more natural in relation to the
     // cyclic ratio
-    float expdc = 1.0067836549063043 * expf((dc-100)*0.05)*100 - 0.678365490630423;
+    float expdc = 1.0067836549063043 * expf((dc - 100) * 0.05) * 100 - 0.678365490630423;
 
     // Set duty cycle
     if (_board.lightColor == COLOR_WHITE_LIGHT)
@@ -368,7 +372,7 @@ void _boardInitGpio()
     GPIO_Init(&GPIO_InitStruct);
 
     // ---- GPIO Interrupt section ----
-    
+
     // Eanble GPIO Interrupt
     NVIC_InitType nvicConfig = {
         .NVIC_IRQChannel = GPIO_IRQn,
@@ -391,7 +395,7 @@ void _boardInitGpio()
 
     // Clear pending GPIO Interrupt
     GPIO_ClearITPendingBit(BOND_PIN | OPENED_PIN);
-  
+
     // Enable GPIO interrupt
     GPIO_EXTICmd(BOND_PIN | OPENED_PIN, ENABLE);
 }
@@ -425,7 +429,6 @@ void _boardInitAdc()
     adc_config(&_board.sensorAdc, ADC_CH_PIN1);
 }
 
-
 // ISR handler -----------------------------------------------------------------
 void GPIO_IT_HANDLER()
 {
@@ -436,7 +439,9 @@ void GPIO_IT_HANDLER()
 
         // Send event to App task
         BaseType_t xHigherPriorityTaskWoken;
-        taskAppEventBondFromISR(&xHigherPriorityTaskWoken);
+        boardSendEventFromISR(
+            BOARD_EVENT_BUTTON_BOND_STATE,
+            &xHigherPriorityTaskWoken);
         portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
     }
 
@@ -447,7 +452,9 @@ void GPIO_IT_HANDLER()
 
         // Send event to App task
         BaseType_t xHigherPriorityTaskWoken;
-        taskAppEventDoorStateFromISR(&xHigherPriorityTaskWoken);
+        boardSendEventFromISR(
+            BOARD_EVENT_DOOR_STATE,
+            &xHigherPriorityTaskWoken);
         portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
     }
 }

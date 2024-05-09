@@ -29,6 +29,8 @@
 #include "BlueNRG1_gpio.h"
 #include "mapHard.h"
 
+#include <FreeRTOS.h>
+
 // Define ----------------------------------------------------------------------
 // #define SW_VERSION_MAJOR          0
 // #define SW_VERSION_MINOR          0
@@ -52,6 +54,12 @@ typedef enum
     COLOR_WHITE_LIGHT
 } color_t;
 
+typedef enum
+{
+    BOARD_EVENT_BUTTON_BOND_STATE,
+    BOARD_EVENT_DOOR_STATE
+} boardEvent_t;
+
 // Prototype functions ---------------------------------------------------------
 void boardInit();
 int boardPrintf(char const *format, ...);
@@ -67,6 +75,11 @@ bool boardIsLocked();
 
 void boardOpen();
 bool boardIsOpen();
+
+// Function called by the ISR board to send an event to the App task
+// This function is implemented in the App task
+void boardSendEventFromISR(boardEvent_t event,
+                           BaseType_t *pxHigherPriorityTaskWoken);
 
 // Prototype static functions --------------------------------------------------
 static inline void boardLedOn()

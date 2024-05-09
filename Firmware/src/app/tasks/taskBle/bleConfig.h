@@ -37,18 +37,17 @@
 
 #include "bluenrg1_stack.h"
 #include "stack_user_cfg.h"
-#include "OTA_btl.h"
 
 /* Default number of link */
-#define MIN_NUM_LINK 1
+#define MIN_NUM_LINK (1)
 /* Default number of GAP and GATT services */
-#define DEFAULT_NUM_GATT_SERVICES 2
+#define DEFAULT_NUM_GATT_SERVICES (2)
 /* Default number of GAP and GATT attributes */
-#define DEFAULT_NUM_GATT_ATTRIBUTES 9
+#define DEFAULT_NUM_GATT_ATTRIBUTES (11)
 
 /* Enable/disable Data length extension Max supported ATT_MTU size based on OTA client & server Max ATT_MTU sizes capabilities */
 #if (CONTROLLER_DATA_LENGTH_EXTENSION_ENABLED == 1) && (OTA_EXTENDED_PACKET_LEN == 1)
-#define OTA_MAX_ATT_MTU_SIZE (OTA_ATT_MTU_SIZE) //(220) /* OTA Client & Server supported ATT_MTU */
+#define OTA_MAX_ATT_MTU_SIZE (OTA_ATT_MTU_SIZE) /* OTA Client & Server supported ATT_MTU */
 #else                                           /* BlueNRG-1 device: no data length extension support */
 #define OTA_MAX_ATT_MTU_SIZE (DEFAULT_ATT_MTU)  /* DEFAULT_ATT_MTU size = 23 bytes */
 #endif
@@ -64,13 +63,13 @@
 #define OTA_16_BYTES_BLOCKS_NUMBER ((OTA_MAX_ATT_MTU_SIZE - 4) / 16) /* 4 bytes for OTA sequence numbers + needs ack + checksum bytes */
 /* OTA characteristics maximum lenght */
 #define OTA_MAX_ATT_SIZE (4 + OTA_16_BYTES_BLOCKS_NUMBER * 16)
-#else                              /* NO OTA Service is required */
+#else                           /* NO OTA Service is required */
 /* Number of services requests from "Ble Smart Lock" */
-#define NUM_APP_GATT_SERVICES 1    /* 1 "Ble Smart Lock" service */
+#define NUM_APP_GATT_SERVICES 1 /* 1 "Ble Smart Lock" service */
 
 /* Number of attributes requests from the "Ble Smart Lock" demo */
 #define NUM_APP_GATT_ATTRIBUTES 11 /* 11 attributes x BLE "Ble Smart Lock" service characteristics */
-// | Total  |     Characteristic     | Number of GATT Attribute Records         |                 
+// | Total  |     Characteristic     | Number of GATT Attribute Records         |
 // | ------ | ---------------------- | ---------------------------------------- |
 // |   2    | lock state             | (1) declaration + (1) value              |
 // |   3    | door state             | (1) declaration + (1) value + (1) notify |
@@ -86,11 +85,9 @@
 
 #define MAX_CHAR_LEN(a, b) ((a) > (b)) ? (a) : (b)
 
-/* Application characteristics maximum lenght */
-#define _MAX_ATT_SIZE (8)
-
 /* Set supported max value for attribute size: it is the biggest attribute size enabled by the application. */
-#define APP_MAX_ATT_SIZE MAX_CHAR_LEN(OTA_MAX_ATT_SIZE, _MAX_ATT_SIZE)
+#define USER_MAX_ATT_SIZE (4)
+#define APP_MAX_ATT_SIZE MAX_CHAR_LEN(OTA_MAX_ATT_SIZE, USER_MAX_ATT_SIZE)
 
 /* Number of links needed for "Ble Smart Lock".
  * Only 1 the default
@@ -113,9 +110,9 @@
 #endif
 
 /* Array size for the attribute value */
-#define ATT_VALUE_ARRAY_SIZE (38 + 16 + 106) /* (GATT + GAP) = 38 default characteristic + 15 max device name + 106 app characteristic*/
-// (GATT + GAP) = 36 (default) + 16 (max device name) 
-// | Total  |     Characteristic     | Size of the Value Array        |                 
+#define ATT_VALUE_ARRAY_SIZE (44 + 16 + 106) /* 44 Only GATT & GAP default services + 16 max device name + 106 app characteristic*/
+// (GATT + GAP) = 36 (default) + 16 (max device name)
+// | Total  |     Characteristic     | Size of the Value Array        |
 // | ------ | ---------------------- | ------------------------------ |
 // |   20   | lock state             | (19) UUID 128 + (1) value size |
 // |   20   | door state             | (19) UUID 128 + (1) value size |
@@ -124,7 +121,6 @@
 // |   23   | brightness threshold   | (19) UUID 128 + (4) value size |
 //   -----
 //    106
-
 
 /* Flash security database size */
 #define FLASH_SEC_DB_SIZE (0x400)
@@ -173,31 +169,30 @@ NO_INIT_SECTION(uint32_t stacklib_flash_data[TOTAL_FLASH_BUFFER_SIZE(FLASH_SEC_D
 NO_INIT_SECTION(uint8_t stacklib_stored_device_id_data[56], ".noinit.stacklib_stored_device_id_data");
 
 /* Maximum duration of the connection event */
-#define MAX_CONN_EVENT_LENGTH 0xFFFFFFFF
+#define MAX_CONN_EVENT_LENGTH (0xFFFFFFFF)
 
 /* Sleep clock accuracy */
 #if (LS_SOURCE == LS_SOURCE_INTERNAL_RO)
 /* Sleep clock accuracy in Slave mode */
-#define SLAVE_SLEEP_CLOCK_ACCURACY 500
+#define SLAVE_SLEEP_CLOCK_ACCURACY (500)
 /* Sleep clock accuracy in Master mode */
-#define MASTER_SLEEP_CLOCK_ACCURACY MASTER_SCA_500ppm
+#define MASTER_SLEEP_CLOCK_ACCURACY (MASTER_SCA_500ppm)
 #else
 /* Sleep clock accuracy in Slave mode */
-#define SLAVE_SLEEP_CLOCK_ACCURACY 100
-
+#define SLAVE_SLEEP_CLOCK_ACCURACY (100)
 /* Sleep clock accuracy in Master mode */
-#define MASTER_SLEEP_CLOCK_ACCURACY MASTER_SCA_100ppm
+#define MASTER_SLEEP_CLOCK_ACCURACY (MASTER_SCA_100ppm)
 #endif
 
 /* Low Speed Oscillator source */
 #if (LS_SOURCE == LS_SOURCE_INTERNAL_RO)
-#define LOW_SPEED_SOURCE 1 // Internal RO
+#define LOW_SPEED_SOURCE (1) // Internal RO
 #else
-#define LOW_SPEED_SOURCE 0 // External 32 KHz
+#define LOW_SPEED_SOURCE (0) // External 32 KHz
 #endif
 
 /* High Speed start up time */
-#define HS_STARTUP_TIME 328 // 800 us
+#define HS_STARTUP_TIME (328) // 800 us
 
 /* Radio Config Hot Table */
 extern uint8_t hot_table_radio_config[];
@@ -229,7 +224,6 @@ const BlueNRG_Stack_Initialization_t BlueNRG_Stack_Init_params = {
     PREPARE_WRITE_LIST_SIZE,
     MBLOCKS_COUNT,
     MAX_ATT_MTU,
-    CONFIG_TABLE,
-};
+    CONFIG_TABLE};
 
 #endif // BLE_CONFIG_H
