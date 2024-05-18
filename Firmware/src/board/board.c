@@ -56,7 +56,7 @@ typedef struct
     uart_t serial;
     uint8_t serialBufTx[_BOARD_UART_TX_FIFO_SIZE];
     uint8_t serialBufRx[_BOARD_UART_RX_FIFO_SIZE];
-    SemaphoreHandle_t serialSemaphore;
+    SemaphoreHandle_t serialMutex;
     StaticSemaphore_t serialMutexBuffer;
 
     // Light section
@@ -80,7 +80,7 @@ static void _boardEnableIo(bool enable);
 
 // Global variables ------------------------------------------------------------
 board_t _board = {
-    .serialSemaphore = NULL,
+    .serialMutex = NULL,
     .lightColor = COLOR_OFF,
     .lightDc = 0.,
     .loked = true};
@@ -96,7 +96,7 @@ void boardInit()
     SystemInit();
 
     // Make semaphores
-    _board.serialSemaphore = xSemaphoreCreateRecursiveMutexStatic(&_board.serialMutexBuffer);
+    _board.serialMutex = xSemaphoreCreateMutexStatic(&_board.serialMutexBuffer);
 
     // Init peripherals
     _boardInitGpio();
@@ -114,9 +114,9 @@ int boardPrintf(char const *format, ...)
     int n = vsnprintf(str, sizeof(str), format, ap);
     va_end(ap);
 
-    xSemaphoreTakeRecursive(_board.serialSemaphore, portMAX_DELAY);
+    xSemaphoreTake(_board.serialMutex, portMAX_DELAY);
     n = uart_write(&_board.serial, str, n);
-    xSemaphoreGiveRecursive(_board.serialSemaphore);
+    xSemaphoreGive(_board.serialMutex);
 
     return n;
 }
@@ -384,7 +384,7 @@ void _boardInitGpio()
     GPIO_EXTIConfigType GPIO_EXTIStructure;
     GPIO_EXTIStructure.GPIO_Pin = BOND_PIN;
     GPIO_EXTIStructure.GPIO_IrqSense = GPIO_IrqSense_Edge;
-    GPIO_EXTIStructure.GPIO_Event = GPIO_Event_High;
+    GPIO_EXTIStructure.GPIO_Event = GPIO_Event_Both;
     GPIO_EXTIConfig(&GPIO_EXTIStructure);
 
     // Configure door status (open/close) Interrupt

@@ -48,6 +48,7 @@
 #include <FreeRTOS.h>
 #include <task.h>
 #include <queue.h>
+#include <semphr.h>
 
 // Define ----------------------------------------------------------------------
 #define _TASK_BLE_DEFAULT_NAME "Ble Smart Lock"
@@ -60,20 +61,24 @@
 #define _TASK_BLE_EVENT_QUEUE_LENGTH 8
 
 // Enum ------------------------------------------------------------------------
+/**
+ * @brief Enum representing various BLE task actions.
+ */
 typedef enum
 {
-    _TASK_BLE_ACTION_NONE = 0,
-    _TASK_BLE_ACTION_DO_ADVERTISING,
-    _TASK_BLE_ACTION_DO_SLAVE_SECURITY_REQUEST,
-    _TASK_BLE_ACTION_DO_CONFIGURE_WHITELIST
+    _TASK_BLE_ACTION_NONE = 0,                  /**< No BLE action. */
+    _TASK_BLE_ACTION_DO_ADVERTISING,            /**< Perform BLE advertising. */
+    _TASK_BLE_ACTION_DO_SLAVE_SECURITY_REQUEST, /**< Perform security request as BLE slave. */
+    _TASK_BLE_ACTION_DO_CONFIGURE_WHITELIST     /**< Configure BLE whitelist. */
 } taskBleAction_t;
 
-// Internal event
-typedef enum
-{
-    _TASK_BLE_EVENT_IT,
-    _TASK_BLE_EVENT_ENABLE_BONDING,
-    _TASK_BLE_EVENT_DISABLE_BONDING
+/**
+ * @brief Enumeration for BLE task events.
+ *
+ * This enum defines the events specific to BLE tasks.
+ */
+typedef enum {
+    _TASK_BLE_EVENT_IT  /**< BLE interrupt event */
 } taskBleEvent_t;
 
 // Struct ----------------------------------------------------------------------
@@ -82,8 +87,12 @@ typedef struct
 {
     // Event queue
     QueueHandle_t eventQueue;
-    StaticQueue_t eventStaticQueue;
+    StaticQueue_t eventQueueBuffer;
     uint8_t eventQueueStorageArea[sizeof(taskBleEvent_t) * _TASK_BLE_EVENT_QUEUE_LENGTH];
+
+    // Mutex to protect BLE stack
+    SemaphoreHandle_t bleStackMutex;
+    StaticSemaphore_t bleStackMutexBuffer;
 
     // GAP handle
     uint16_t serviceGapHandle;
@@ -164,16 +173,19 @@ typedef struct
     uint16_t brightnessThCharAppHandle;
 } taskBle_t;
 
-// Prototype functions ---------------------------------------------------------
-tBleStatus _taskBleInitDevice();
-tBleStatus _taskBleDiscoverable(bool bond);
-tBleStatus _taskBleAddServices();
-const char *_taskBleStatusToStr(tBleStatus status);
-
 // Global variables ------------------------------------------------------------
 static taskBle_t _taskBle = {0};
 
 // Private prototype functions -------------------------------------------------
+tBleStatus _taskBleInitDevice();
+tBleStatus _taskBleAddServices();
+const char *_taskBleStatusToStr(tBleStatus status);
+
+void _taskBleUpdateWhitelist();
+void _taskBleMakeDiscoverable(bool bond);
+
+uint16_t _taskBleGetCharHandleFromAtt(bleAtt_t att);
+
 void _taskBleActionTick();
 void _taskBleEventDoorStateHandle();
 void _taskBleEventClearBondedDevicesHandle();
@@ -185,7 +197,10 @@ void taskBleCodeInit()
     _taskBle.eventQueue = xQueueCreateStatic(_TASK_BLE_EVENT_QUEUE_LENGTH,
                                              sizeof(taskBleEvent_t),
                                              _taskBle.eventQueueStorageArea,
-                                             &_taskBle.eventStaticQueue);
+                                             &_taskBle.eventQueueBuffer);
+
+    // Init mutex
+    _taskBle.bleStackMutex = xSemaphoreCreateMutexStatic(&_taskBle.bleStackMutexBuffer);
 
     // Init Ble
     _taskBle.bleStatus = BlueNRG_Stack_Initialization(&BlueNRG_Stack_Init_params);
@@ -218,57 +233,21 @@ void taskBleCode(__attribute__((unused)) void *parameters)
 {
     taskBleEvent_t event;
 
-    // if (_taskBle.bleStatus == BLE_STATUS_SUCCESS)
-    // {
-    //     // Todo a déplacer dans la tache App en appelant taskBleWriteCharValue()
-    //     // Update first brightness threshold value
-    //     float th = taskAppGetBrightnessTh();
-    //     _taskBle.bleStatus = aci_gatt_update_char_value(
-    //         _taskBle.serviceAppHandle,
-    //         _taskBle.brightnessThCharAppHandle,
-    //         0,             /* Val_Offset */
-    //         sizeof(float), /* Char_Value_Length */
-    //         (uint8_t *)&th);
-    // }
-
     if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
-    {
         taskBleSendEvent(BLE_EVENT_ERR);
-    }
 
-    // test >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-    uint8_t Num_of_Addresses = 0;
-    Bonded_Device_Entry_t Bonded_Device_Entry[MAX_NUM_BONDED_DEVICES];
-    aci_gap_get_bonded_devices(&Num_of_Addresses, Bonded_Device_Entry);
-    boardPrintf("Bonded device:%u\r\n", Num_of_Addresses);
-    for (uint8_t i = 0; i < Num_of_Addresses; i++)
-    {
-        boardPrintf("\t Address_Type:%s\r\n", (Bonded_Device_Entry[i].Address_Type == 0x00) ? "Public Device Address" : "Random Device Address");
-        boardPrintf("\t Address:0x%x%x%x%x%x%x\r\n", Bonded_Device_Entry[i].Address[5], Bonded_Device_Entry[i].Address[4], Bonded_Device_Entry[i].Address[3], Bonded_Device_Entry[i].Address[2], Bonded_Device_Entry[i].Address[1], Bonded_Device_Entry[i].Address[0]);
-    }
-
-    uint8_t White_List_Size = 0;
-    hci_le_read_white_list_size(&White_List_Size);
-    boardPrintf("White list:%u\r\n", Num_of_Addresses);
-
-    // if (Num_of_Addresses == 1)
-    // {
-    //     aci_gap_configure_whitelist();
-
-    //     Whitelist_Identity_Entry_t Whitelist_Identity_Entry;
-    //     Whitelist_Identity_Entry.Peer_Identity_Address_Type = Bonded_Device_Entry[0].Address_Type;
-    //     memcpy(&(Whitelist_Identity_Entry.Peer_Identity_Address[0]), &(Bonded_Device_Entry[0].Address), 6);
-    //     aci_gap_add_devices_to_resolving_list(1, &Whitelist_Identity_Entry, 1);
-    // }
-
-    // test >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-    _taskBleDiscoverable(false);
+    xSemaphoreTake(_taskBle.bleStackMutex, portMAX_DELAY);
+    // Update first the whitelist.
+    _taskBleUpdateWhitelist();
+    // Make the device discoverable and linkable only to the device whitelist.
+    _taskBleMakeDiscoverable(false);
+    xSemaphoreGive(_taskBle.bleStackMutex);
 
     while (1)
     {
         xQueueReceive(_taskBle.eventQueue, &event, portMAX_DELAY);
 
+        xSemaphoreTake(_taskBle.bleStackMutex, portMAX_DELAY);
         switch (event)
         {
         case _TASK_BLE_EVENT_IT:
@@ -282,24 +261,77 @@ void taskBleCode(__attribute__((unused)) void *parameters)
             boardLedOff();
             break;
         }
-
-        case _TASK_BLE_EVENT_ENABLE_BONDING:
-            _taskBleDiscoverable(true);
-            break;
-        case _TASK_BLE_EVENT_DISABLE_BONDING:
-            _taskBleDiscoverable(false);
-            break;
-
         default:
             break;
         }
+        xSemaphoreGive(_taskBle.bleStackMutex);
     }
 }
 
-void taskBleEnableBonding(bool enable)
+void taskBleBonding(bool enable)
 {
-    taskBleEvent_t event = (enable == true) ? _TASK_BLE_EVENT_ENABLE_BONDING : _TASK_BLE_EVENT_DISABLE_BONDING;
-    xQueueSend(_taskBle.eventQueue, &event, portMAX_DELAY);
+    xSemaphoreTake(_taskBle.bleStackMutex, portMAX_DELAY);
+    if (_taskBle.bonding == !enable)
+        _taskBleMakeDiscoverable(enable);
+    xSemaphoreGive(_taskBle.bleStackMutex);
+}
+
+int taskBleClearAllPairing()
+{
+    int n = -1;
+
+    xSemaphoreTake(_taskBle.bleStackMutex, portMAX_DELAY);
+    if (_taskBle.bleStatus == BLE_STATUS_SUCCESS)
+    {
+        _taskBle.bleStatus = aci_gap_clear_security_db();
+
+        if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
+        {
+            boardPrintf("Ble: clear security data base error: %s\r\n",
+                        _taskBleStatusToStr(_taskBle.bleStatus));
+        }
+        else
+        {
+            n = 1;
+            boardPrintf("Ble: security data base cleared\r\n");
+        }
+    }
+    xSemaphoreGive(_taskBle.bleStackMutex);
+
+    return n;
+}
+
+int taskBleUpdateAtt(bleAtt_t att, const void *buf, size_t nbyte)
+{
+    int n = -1;
+    uint16_t charHandle = _taskBleGetCharHandleFromAtt(att);
+
+    if (charHandle == 0xffff)
+        return -1;
+    if (nbyte == 0)
+        return 0;
+
+    xSemaphoreTake(_taskBle.bleStackMutex, portMAX_DELAY);
+    if (_taskBle.bleStatus == BLE_STATUS_SUCCESS)
+    {
+        _taskBle.bleStatus = aci_gatt_update_char_value(
+            _taskBle.serviceAppHandle,
+            charHandle,
+            0,     /* Val_Offset */
+            nbyte, /* Char_Value_Length */
+            (uint8_t *)buf);
+
+        if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
+        {
+            boardPrintf("Ble: update char value error: %s\r\n",
+                        _taskBleStatusToStr(_taskBle.bleStatus));
+        }
+        else
+            n = nbyte;
+    }
+    xSemaphoreGive(_taskBle.bleStackMutex);
+
+    return n;
 }
 
 void _taskBleActionTick()
@@ -307,7 +339,8 @@ void _taskBleActionTick()
     if (_taskBle.action == _TASK_BLE_ACTION_DO_SLAVE_SECURITY_REQUEST)
     {
         _taskBle.action = _TASK_BLE_ACTION_NONE;
-        _taskBle.bleStatus = aci_gap_slave_security_req(_taskBle.connectionHandle);
+        _taskBle.bleStatus = aci_gap_slave_security_req(
+            _taskBle.connectionHandle);
         if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
         {
             boardPrintf("Ble: slave security request error: %s\r\n",
@@ -318,48 +351,14 @@ void _taskBleActionTick()
     else if (_taskBle.action == _TASK_BLE_ACTION_DO_CONFIGURE_WHITELIST)
     {
         _taskBle.action = _TASK_BLE_ACTION_NONE;
-
-        do
-        {
-            uint8_t bondedDeviceNb;
-            Bonded_Device_Entry_t bondedDeviceEntry[MAX_NUM_BONDED_DEVICES];
-            Whitelist_Identity_Entry_t whitelistIdentityEntry;
-
-            _taskBle.bleStatus = aci_gap_get_bonded_devices(
-                &bondedDeviceNb, bondedDeviceEntry);
-            if ((_taskBle.bleStatus != BLE_STATUS_SUCCESS) || (bondedDeviceNb == 0))
-                break;
-
-            whitelistIdentityEntry.Peer_Identity_Address_Type = bondedDeviceEntry[0].Address_Type;
-            memcpy(&(whitelistIdentityEntry.Peer_Identity_Address[0]),
-                   &(bondedDeviceEntry[0].Address), 6);
-
-            _taskBle.bleStatus = aci_gap_configure_whitelist();
-            if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
-                break;
-
-            _taskBle.bleStatus = aci_gap_add_devices_to_resolving_list(
-                1, &whitelistIdentityEntry, 0);
-        } while (0);
-
-        if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
-        {
-            boardPrintf("Ble: configure whitelist error: %s\r\n",
-                        _taskBleStatusToStr(_taskBle.bleStatus));
-            taskBleSendEvent(BLE_EVENT_ERR);
-        }
+        _taskBleUpdateWhitelist();
     }
     else if (_taskBle.action == _TASK_BLE_ACTION_DO_ADVERTISING)
     {
         _taskBle.action = _TASK_BLE_ACTION_NONE;
-        
-        _taskBle.bleStatus = _taskBleDiscoverable(false);
-        if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
-        {
-            boardPrintf("Ble: set discoverable mode error: %s\r\n",
-                        _taskBleStatusToStr(_taskBle.bleStatus));
-            taskBleSendEvent(BLE_EVENT_ERR);
-        }
+
+        // Make the device discoverable and linkable only to the device whitelist.
+        _taskBleMakeDiscoverable(false);
     }
 }
 
@@ -437,7 +436,7 @@ tBleStatus _taskBleInitDevice()
     if (bleStatus != BLE_STATUS_SUCCESS)
         return bleStatus;
 
-    // todo A suprimer ?? a priori non (a tester) car active: "LE Enhanced Connection Complete Event"
+    // Enable "LE Enhanced Connection Complete Event"
     static uint8_t LE_Event_Mask[8] = {0x1F, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
     bleStatus = hci_le_set_event_mask(LE_Event_Mask);
     if (bleStatus != BLE_STATUS_SUCCESS)
@@ -465,11 +464,6 @@ tBleStatus _taskBleInitDevice()
         0x00, // GATT_LOCAL_UPDATE
         sizeof(deviceName) - 1,
         0, sizeof(deviceName) - 1, deviceName);
-
-    // todo: a supprimer
-    bleStatus = aci_gap_clear_security_db();
-    if (bleStatus != BLE_STATUS_SUCCESS)
-        return bleStatus;
 
     // Update Appearance (from Bluetooth SIG)
     // - Category (bits 15 to 6) : 0x01C Access Control
@@ -499,6 +493,14 @@ tBleStatus _taskBleInitDevice()
         123456, // Fixed Pin
         STATIC_RANDOM_ADDR);
     if (bleStatus != BLE_STATUS_SUCCESS)
+        return bleStatus;
+
+    // Set scan response
+    uint8_t scanResponseData[31] = "  " _TASK_BLE_DEFAULT_NAME;
+    scanResponseData[0] = 1 + sizeof(_TASK_BLE_DEFAULT_NAME) - 1;
+    scanResponseData[1] = 0x09;
+    _taskBle.bleStatus = hci_le_set_scan_response_data(scanResponseData[0] + 1, scanResponseData);
+    if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
         return bleStatus;
 
     return bleStatus;
@@ -599,41 +601,86 @@ tBleStatus _taskBleAddServices()
     return bleStatus;
 }
 
-tBleStatus _taskBleDiscoverable(bool bond)
+void _taskBleUpdateWhitelist()
 {
-    tBleStatus bleStatus;
+    do
+    {
+        uint8_t bondedLen;
+        Bonded_Device_Entry_t bonded[MAX_NUM_BONDED_DEVICES];
+        Whitelist_Identity_Entry_t whitelist[MAX_NUM_BONDED_DEVICES];
+
+        _taskBle.bleStatus = aci_gap_get_bonded_devices(&bondedLen, bonded);
+        if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
+            break;
+
+        for (uint8_t i = 0; i < bondedLen; i++)
+        {
+            whitelist[i].Peer_Identity_Address_Type = bonded[i].Address_Type;
+            memcpy(whitelist[i].Peer_Identity_Address, bonded[i].Address, 6);
+        }
+
+        _taskBle.bleStatus = aci_gap_configure_whitelist();
+        if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
+            break;
+
+        _taskBle.bleStatus = aci_gap_add_devices_to_resolving_list(
+            bondedLen, whitelist, 1);
+    } while (0);
+
+    if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
+    {
+        boardPrintf("Ble: update whitelist error: %s\r\n",
+                        _taskBleStatusToStr(_taskBle.bleStatus));
+            taskBleSendEvent(BLE_EVENT_ERR);
+    }
+}
+
+void _taskBleMakeDiscoverable(bool bond)
+{
     _taskBle.bonding = false;
 
     // Disables advertising.
-    aci_gap_set_non_discoverable();
+    _taskBle.bleStatus = aci_gap_set_non_discoverable();
 
-    if (bond == true)
+    do
     {
-        // Set scan response
-        uint8_t scanResponseData[31] = "  " _TASK_BLE_DEFAULT_NAME;
-        scanResponseData[0] = 1 + sizeof(_TASK_BLE_DEFAULT_NAME) - 1;
-        scanResponseData[1] = 0x09;
-        bleStatus = hci_le_set_scan_response_data(scanResponseData[0] + 1, scanResponseData);
-        if (bleStatus != BLE_STATUS_SUCCESS)
-            return bleStatus;
+        if ((_taskBle.bleStatus != BLE_STATUS_SUCCESS) &&
+            (_taskBle.bleStatus != BLE_STATUS_NOT_ALLOWED))
+            break;
 
-        bleStatus = aci_gap_set_undirected_connectable(
-            (_TASK_BLE_BOND_ADV_INTERVAL_MIN_MS * 1000) / 625,
-            (_TASK_BLE_BOND_ADV_INTERVAL_MAX_MS * 1000) / 625,
-            RESOLVABLE_PRIVATE_ADDR,
-            NO_WHITE_LIST_USE);
-    }
-    else
+        if (bond == true)
+        {
+            _taskBle.bleStatus = aci_gap_set_undirected_connectable(
+                (_TASK_BLE_BOND_ADV_INTERVAL_MIN_MS * 1000) / 625,
+                (_TASK_BLE_BOND_ADV_INTERVAL_MAX_MS * 1000) / 625,
+                RESOLVABLE_PRIVATE_ADDR,
+                NO_WHITE_LIST_USE);
+            if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
+                break;
+
+            _taskBle.bonding = true;
+            boardPrintf("Ble: discoverable in bond mode.\r\n");
+        }
+        else
+        {
+            _taskBle.bleStatus = aci_gap_set_undirected_connectable(
+                (_TASK_BLE_ADV_INTERVAL_MIN_MS * 1000) / 625,
+                (_TASK_BLE_ADV_INTERVAL_MAX_MS * 1000) / 625,
+                RESOLVABLE_PRIVATE_ADDR,
+                WHITE_LIST_FOR_ALL);
+            if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
+                break;
+
+            boardPrintf("Ble: discoverable.\r\n");
+        }
+    } while (0);
+
+    if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
     {
-        bleStatus = aci_gap_set_undirected_connectable(
-            (_TASK_BLE_ADV_INTERVAL_MIN_MS * 1000) / 625,
-            (_TASK_BLE_ADV_INTERVAL_MAX_MS * 1000) / 625,
-            RESOLVABLE_PRIVATE_ADDR,
-            WHITE_LIST_FOR_ALL);
+        boardPrintf("Ble: make discoverable error: %s\r\n",
+                    _taskBleStatusToStr(_taskBle.bleStatus));
+        taskBleSendEvent(BLE_EVENT_ERR);
     }
-
-    _taskBle.bonding = bond;
-    return bleStatus;
 }
 
 const char *_taskBleStatusToStr(tBleStatus status)
@@ -712,19 +759,19 @@ const char *_taskBleStatusToStr(tBleStatus status)
 
     // Security Manager error codes
     case BLE_STATUS_DEV_IN_BLACKLIST:
-        return "dev in blacklist";
+        return "device in blacklist";
     case BLE_STATUS_CSRK_NOT_FOUND:
         return "csrk not found";
     case BLE_STATUS_IRK_NOT_FOUND:
         return "irk not found";
     case BLE_STATUS_DEV_NOT_FOUND:
-        return "dev not found";
+        return "device not found";
     case BLE_STATUS_SEC_DB_FULL:
         return "sec db full";
     case BLE_STATUS_DEV_NOT_BONDED:
-        return "dev not bonded";
+        return "device not bonded";
     case BLE_INSUFFICIENT_ENC_KEYSIZE:
-        return "cient enc keysize";
+        return "insufficient enc keysize";
 
     // Gatt layer Error Codes
     case BLE_STATUS_INVALID_HANDLE:
@@ -776,6 +823,27 @@ const char *_taskBleStatusToStr(tBleStatus status)
         return "Unknow error";
     }
     return "";
+}
+
+uint16_t _taskBleGetCharHandleFromAtt(bleAtt_t att)
+{
+    switch (att)
+    {
+    case BLE_ATT_LOCK_STATE:
+        return _taskBle.lockStateCharAppHandle;
+    case BLE_ATT_DOOR_STATE:
+        return _taskBle.doorStateCharAppHandle;
+    case BLE_ATT_OPEN_DOOR:
+        return _taskBle.openDoorCharAppHandle;
+    case BLE_ATT_BRIGHTNESS:
+        return _taskBle.brightnessCharAppHandle;
+    case BLE_ATT_BRIGHTNESS_TH:
+        return _taskBle.brightnessThCharAppHandle;
+
+    default:
+        break;
+    }
+    return 0xffff;
 }
 
 // It's not very clean but I don't want to make the taskBle_t structure visible

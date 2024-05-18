@@ -97,4 +97,9 @@ static inline void boardLedToggel()
     GPIO_ToggleBits(LED_PIN);
 }
 
+static inline bool boardButtonBondState()
+{
+    return GPIO_ReadBit(BOND_PIN) == Bit_SET;
+}
+
 #endif // BOARD_H

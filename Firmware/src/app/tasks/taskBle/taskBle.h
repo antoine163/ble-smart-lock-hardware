@@ -32,36 +32,47 @@
 #ifndef TASK_BLE_H
 #define TASK_BLE_H
 
+// Include ---------------------------------------------------------------------
+#include <stddef.h>
+
 // Enum ------------------------------------------------------------------------
 
-// typedef enum
-// {
-//     BLE_ATT_LOCK_STATE,
-//     BLE_ATT_DOOR_STATE,
-//     BLE_ATT_OPEN_DOOR,
-//     BLE_ATT_BRIGHTNESS,
-//     BLE_ATT_BRIGHTNESS_TH
-// } bleAtt_t;
+/**
+ * @brief Enumeration of BLE attribute types.
+ *
+ * This enum defines the various BLE attribute types used in the application.
+ */
+typedef enum {
+    BLE_ATT_LOCK_STATE,      /**< Attribute representing the lock state (lock/unlock)*/
+    BLE_ATT_DOOR_STATE,      /**< Attribute representing the door state (open/close) */
+    BLE_ATT_OPEN_DOOR,       /**< Attribute representing the action to open the door */
+    BLE_ATT_BRIGHTNESS,      /**< Attribute representing the brightness level */
+    BLE_ATT_BRIGHTNESS_TH    /**< Attribute representing the brightness threshold */
+} bleAtt_t;
 
-// Event send by the BLE task.
-typedef enum
-{
-    BLE_EVENT_ERR,
-    BLE_EVENT_CONNECTED,
-    BLE_EVENT_DISCONNECTED,
+/**
+ * @brief Enumeration of BLE task events.
+ *
+ * This enum defines the various events that can be sent by the BLE task.
+ */
+typedef enum {
+    BLE_EVENT_ERR,          /**< Event indicating an error occurred */
+    BLE_EVENT_CONNECTED,    /**< Event indicating a successful connection */
+    BLE_EVENT_DISCONNECTED, /**< Event indicating a disconnection */
 } bleEvent_t;
 
 // Prototype functions ---------------------------------------------------------
 void taskBleCodeInit();
 void taskBleCode(void *parameters);
 
-void taskBleEnableBonding(bool enable);
 
 // Function called by the BLE task to send an event to the App task
 // This function is implemented in the App task
 void taskBleSendEvent(bleEvent_t event);
 
-// int taskBleReadAtt(taskBleAtt_t att, void *buf, size_t nbyte);
-// int taskBleWritAtt(taskBleAtt_t att, const void *buf, size_t nbyte);
+void taskBleBonding(bool enable);
+
+int taskBleClearAllPairing();
+int taskBleUpdateAtt(bleAtt_t att, const void *buf, size_t nbyte);
 
 #endif // TASK_BLE_H

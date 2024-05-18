@@ -32,6 +32,7 @@
 // Include ---------------------------------------------------------------------
 #include "taskApp.h"
 #include "tasks/taskLight/taskLight.h"
+#include "tasks/taskBle/taskBle.h"
 
 #include <FreeRTOS.h>
 #include <task.h>
@@ -41,6 +42,7 @@
 #define _TASK_APP_DEFAULT_BRIGHTNESS_THRESHOLD 50.f                          //!< Default threshold: 50%
 #define _TASK_APP_RESTART_DELAY_TICK (1 * 60 * 1000 / portTICK_PERIOD_MS)    //!< Tick to wait before restarting following error detection: 1min
 #define _TASK_APP_OFF_LIGHT_DELAY_TICK (15 * 60 * 1000 / portTICK_PERIOD_MS) //!< Tick to wait before torn off light following disconnection: 15min
+#define _TASK_APP_CLEAR_BONDED_DELAY_TICK (3 * 1000 / portTICK_PERIOD_MS)    //!< Tick to wait before clear all bonded devices: 3s
 #define _TASK_APP_EVENT_QUEUE_LENGTH 8
 
 // Enum ------------------------------------------------------------------------
@@ -63,7 +65,7 @@ typedef struct
 {
     // Event queue
     QueueHandle_t eventQueue;
-    StaticQueue_t eventStaticQueue;
+    StaticQueue_t eventQueueBuffer;
     uint8_t eventQueueStorageArea[sizeof(taskAppEventItem_t) * _TASK_APP_EVENT_QUEUE_LENGTH];
 
     // App status
@@ -76,6 +78,10 @@ typedef struct
     // Timeout to manage light off follows an disconnection.
     TickType_t ticksToOffLight;
     TimeOut_t timeOutOffLight;
+
+    // Timeout to manage clean all bonded device
+    TickType_t ticksToClearBonded;
+    TimeOut_t timeOutClearBonded;
 
     // App conf
     float brightnessTh;
@@ -105,11 +111,12 @@ void taskAppCodeInit()
     _taskApp.eventQueue = xQueueCreateStatic(_TASK_APP_EVENT_QUEUE_LENGTH,
                                              sizeof(taskAppEventItem_t),
                                              _taskApp.eventQueueStorageArea,
-                                             &_taskApp.eventStaticQueue);
+                                             &_taskApp.eventQueueBuffer);
 
     _taskApp.status = _TASK_APP_STATUS_DISCONNECTED;
     _taskApp.ticksToRestart = portMAX_DELAY;
     _taskApp.ticksToOffLight = portMAX_DELAY;
+    _taskApp.ticksToClearBonded = portMAX_DELAY;
 
     // Todo: Lir la valeur à partie de la flash
     _taskApp.brightnessTh = _TASK_APP_DEFAULT_BRIGHTNESS_THRESHOLD;
@@ -118,6 +125,11 @@ void taskAppCodeInit()
 void taskAppCode(__attribute__((unused)) void *parameters)
 {
     taskAppEventItem_t eventItem;
+
+    // Set brightens threshold BLE attribut
+    taskBleUpdateAtt(BLE_ATT_BRIGHTNESS_TH,
+                     &_taskApp.brightnessTh,
+                     sizeof(_taskApp.brightnessTh));
 
     // /Door is open ?
     if (boardIsOpen() == true)
@@ -153,16 +165,27 @@ void taskAppCode(__attribute__((unused)) void *parameters)
             }
         }
 
-        if (xTaskCheckForTimeOut(&_taskApp.timeOutRestart, &_taskApp.ticksToRestart) != pdFALSE)
+        if ((_taskApp.ticksToRestart != portMAX_DELAY) &&
+            (xTaskCheckForTimeOut(&_taskApp.timeOutRestart, &_taskApp.ticksToRestart) != pdFALSE))
         {
             NVIC_SystemReset();
         }
 
-        if (xTaskCheckForTimeOut(&_taskApp.timeOutOffLight, &_taskApp.ticksToOffLight) != pdFALSE)
+        if ((_taskApp.ticksToOffLight != portMAX_DELAY) &&
+            (xTaskCheckForTimeOut(&_taskApp.timeOutOffLight, &_taskApp.ticksToOffLight) != pdFALSE))
         {
             _taskApp.ticksToOffLight = portMAX_DELAY;
             taskLightAnimTrans(0, COLOR_OFF, 0);
         }
+
+        // Todo ...
+        // if ((_taskApp.ticksToClearBonded != portMAX_DELAY) &&
+        //     (xTaskCheckForTimeOut(&_taskApp.timeOutClearBonded, &_taskApp.ticksToClearBonded) != pdFALSE))
+        // {
+        //     // _taskApp.ticksToClearBonded = portMAX_DELAY;
+        //     // if (boardButtonBondState() == true)
+        //     //     taskBleClearAllPairing();
+        // }
     }
 }
 
@@ -339,10 +362,24 @@ void _taskAppBoardEventDoorStateHandle()
 
 void _taskAppBoardEventButtonBondStateHandle()
 {
-    if (_taskApp.status != _TASK_APP_STATUS_BONDING)
+    if (boardButtonBondState() == true)
     {
-        _taskAppSetStatus(_TASK_APP_STATUS_BONDING);
-        taskBleEnableBonding(true);
+        // Enable clear bonded device timeout
+        _taskApp.ticksToClearBonded = _TASK_APP_CLEAR_BONDED_DELAY_TICK;
+        vTaskSetTimeOutState(&_taskApp.timeOutClearBonded);
+    }
+    else
+    {
+        if (xTaskCheckForTimeOut(&_taskApp.timeOutClearBonded, &_taskApp.ticksToClearBonded) == pdTRUE)
+            taskBleClearAllPairing();
+        else if (_taskApp.status != _TASK_APP_STATUS_BONDING)
+        {
+            _taskAppSetStatus(_TASK_APP_STATUS_BONDING);
+            taskBleBonding(true);
+        }
+
+        // Disable clear bonded device timeout
+        _taskApp.ticksToClearBonded = portMAX_DELAY;
     }
 }
 
@@ -355,6 +392,7 @@ void boardSendEventFromISR(boardEvent_t event,
     xQueueSendFromISR(_taskApp.eventQueue, &eventItem, pxHigherPriorityTaskWoken);
 }
 
+// Warning: this function is run in task BLE
 void taskBleSendEvent(bleEvent_t event)
 {
     switch (event)

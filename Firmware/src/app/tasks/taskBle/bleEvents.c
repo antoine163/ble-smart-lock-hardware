@@ -126,9 +126,18 @@ void hci_le_enhanced_connection_complete_event(
     BLE_EVENT_PRINT("\tConnection_Handle:0x%x\r\n", Connection_Handle);
     BLE_EVENT_PRINT("\tRole:%s\r\n",
                     (Role == 0x00) ? "Master" : "Slave");
-    BLE_EVENT_PRINT("\tPeer_Address_Type:%s\r\n",
-                    (Peer_Address_Type == 0x00) ? "Public Device Address" : "Random Device Address");
+
+    if (Peer_Address_Type == 0x00)
+        BLE_EVENT_PRINT("\tPeer_Address_Type:Public Device Address\r\n");
+    else if (Peer_Address_Type == 0x01)
+        BLE_EVENT_PRINT("\tPeer_Address_Type:Random Device Address\r\n");
+    else if (Peer_Address_Type == 0x02)
+        BLE_EVENT_PRINT("\tPeer_Address_Type:Public Identity Address\r\n");
+    else if (Peer_Address_Type == 0x03)
+        BLE_EVENT_PRINT("\tPeer_Address_Type:Random (Static) Identity Address\r\n");
+
     BLE_EVENT_PRINT("\tPeer_Address:0x%x%x%x%x%x%x\r\n", Peer_Address[5], Peer_Address[4], Peer_Address[3], Peer_Address[2], Peer_Address[1], Peer_Address[0]);
+
     BLE_EVENT_PRINT("\tLocal_Resolvable_Private_Address:0x%x%x%x%x%x%x\r\n", Local_Resolvable_Private_Address[5], Local_Resolvable_Private_Address[4], Local_Resolvable_Private_Address[3], Local_Resolvable_Private_Address[2], Local_Resolvable_Private_Address[1], Local_Resolvable_Private_Address[0]);
     BLE_EVENT_PRINT("\tPeer_Resolvable_Private_Address:0x%x%x%x%x%x%x\r\n", Peer_Resolvable_Private_Address[5], Peer_Resolvable_Private_Address[4], Peer_Resolvable_Private_Address[3], Peer_Resolvable_Private_Address[2], Peer_Resolvable_Private_Address[1], Peer_Resolvable_Private_Address[0]);
     BLE_EVENT_PRINT("\tConn_Interval:%u ms\r\n", (int)((float)Conn_Interval * 1.25));
