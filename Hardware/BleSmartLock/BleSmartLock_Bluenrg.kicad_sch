@@ -6,8 +6,8 @@
 	(paper "A4")
 	(title_block
 		(title "Ble Smart Lock")
-		(date "2024-03-30")
-		(rev "v1.0")
+		(date "2024-05-18")
+		(rev "v1.1")
 		(company "antoine163")
 	)
 	(lib_symbols
@@ -3750,7 +3750,7 @@
 	)
 	(hierarchical_label "~{LOCK}"
 		(shape output)
-		(at 161.29 101.6 0)
+		(at 161.29 86.36 0)
 		(fields_autoplaced yes)
 		(effects
 			(font
@@ -3802,7 +3802,7 @@
 	)
 	(hierarchical_label "OPENED"
 		(shape input)
-		(at 161.29 86.36 0)
+		(at 161.29 101.6 0)
 		(fields_autoplaced yes)
 		(effects
 			(font

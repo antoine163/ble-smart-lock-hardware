@@ -6,8 +6,8 @@
 	(paper "A4")
 	(title_block
 		(title "Ble Smart Lock")
-		(date "2024-03-30")
-		(rev "v1.0")
+		(date "2024-05-18")
+		(rev "v1.1")
 		(company "antoine163")
 	)
 	(lib_symbols
@@ -7975,6 +7975,15 @@
 			)
 		)
 		(property "Description" "Polarized capacitor"
+			(at 76.2 160.02 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(hide yes)
+			)
+		)
+		(property "Vendor" "     PANASONIC:ECA1CAM472X"
 			(at 76.2 160.02 0)
 			(effects
 				(font
