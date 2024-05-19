@@ -65,7 +65,7 @@ Il est possible de supprimer cette liste avec la commande `bond-clear` via la li
 - `reset` : Réinitialiser toutes les valeurs par défaut.
 
 ## Led rouge
-La LED rouge située sur le PCB s'allume en fonction de l'activité radio.
+La LED rouge située sur le PCB s'allume en fonction de l'activité radio.  
 ![BleSmartLock poc](images/photo_top_red_led.jpg)
 
 # Fonctionnalités
