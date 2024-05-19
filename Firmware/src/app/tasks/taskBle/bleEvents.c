@@ -43,7 +43,7 @@ void hci_disconnection_complete_event(
     BLE_EVENT_PRINT("\tConnection_Handle:0x%x\r\n", Connection_Handle);
     BLE_EVENT_PRINT("\tReason:0x%x\r\n", Reason);
 
-    _taskBle.action = _TASK_BLE_ACTION_DO_ADVERTISING;
+    _TASK_BLE_FLAG_SET(DO_ADVERTISING);
     taskBleSendEvent(BLE_EVENT_DISCONNECTED);
 }
 
@@ -103,7 +103,7 @@ void hci_le_connection_complete_event(
 #endif
 
     _taskBle.connectionHandle = Connection_Handle;
-    _taskBle.action = _TASK_BLE_ACTION_DO_SLAVE_SECURITY_REQUEST;
+    _TASK_BLE_FLAG_SET(DO_SLAVE_SECURITY_REQ);
     taskBleSendEvent(BLE_EVENT_CONNECTED);
 }
 
@@ -176,7 +176,7 @@ void hci_le_enhanced_connection_complete_event(
 #endif
 
     _taskBle.connectionHandle = Connection_Handle;
-    _taskBle.action = _TASK_BLE_ACTION_DO_SLAVE_SECURITY_REQUEST;
+    _TASK_BLE_FLAG_SET(DO_SLAVE_SECURITY_REQ);
     taskBleSendEvent(BLE_EVENT_CONNECTED);
 }
 
@@ -267,7 +267,7 @@ void aci_gap_pairing_complete_event(
 
     // If success and bonding mode
     if ((Status == 0x00) && (_taskBle.bonding == true))
-        _taskBle.action = _TASK_BLE_ACTION_DO_CONFIGURE_WHITELIST;
+        _TASK_BLE_FLAG_SET(DO_CONFIGURE_WHITELIST);
 }
 
 void aci_gatt_attribute_modified_event(
@@ -337,20 +337,7 @@ void aci_gatt_read_permit_req_event(
     BLE_EVENT_PRINT("\tAttribute_Handle:0x%x\r\n", Attribute_Handle);
     BLE_EVENT_PRINT("\tOffset:%u\r\n", Offset);
 
-    // Todo: à déplacer dans le core de la tache Ble
-    // Update brightness befor read
-    if (Attribute_Handle == _taskBle.brightnessCharAppHandle + 1)
-    {
-        float brightness = boardGetBrightness();
-        aci_gatt_update_char_value(
-            _taskBle.serviceAppHandle,
-            _taskBle.brightnessCharAppHandle,
-            0,             /* Val_Offset */
-            sizeof(float), /* Char_Value_Length */
-            (uint8_t *)&brightness);
-    }
-
-    aci_gatt_allow_read(Connection_Handle);
+    _TASK_BLE_FLAG_SET(DO_NOTIFY_READ_REQ);
 }
 
 void hci_encryption_change_event(

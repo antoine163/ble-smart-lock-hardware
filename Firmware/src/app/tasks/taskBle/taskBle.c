@@ -60,25 +60,36 @@
 
 #define _TASK_BLE_EVENT_QUEUE_LENGTH 8
 
+// Flag tools
+#define _TASK_BLE_FLAG_SET(name_flag) \
+    _taskBle.flags |= _TASK_BLE_FLAG_##name_flag;
+
+#define _TASK_BLE_FLAG_CLEAR(name_flag) \
+    _taskBle.flags &= (~_TASK_BLE_FLAG_##name_flag);
+
+#define _TASK_BLE_FLAG_IS(name_flag) \
+    ((_taskBle.flags & _TASK_BLE_FLAG_##name_flag) != 0)
+
 // Enum ------------------------------------------------------------------------
 /**
- * @brief Enum representing various BLE task actions.
+ * @brief Enum representing various BLE task flasg.
  */
 typedef enum
 {
-    _TASK_BLE_ACTION_NONE = 0,                  /**< No BLE action. */
-    _TASK_BLE_ACTION_DO_ADVERTISING,            /**< Perform BLE advertising. */
-    _TASK_BLE_ACTION_DO_SLAVE_SECURITY_REQUEST, /**< Perform security request as BLE slave. */
-    _TASK_BLE_ACTION_DO_CONFIGURE_WHITELIST     /**< Configure BLE whitelist. */
-} taskBleAction_t;
+    _TASK_BLE_FLAG_DO_ADVERTISING = 0x01,         /**< Perform BLE advertising. */
+    _TASK_BLE_FLAG_DO_SLAVE_SECURITY_REQ = 0x02,  /**< Perform security request as BLE slave. */
+    _TASK_BLE_FLAG_DO_CONFIGURE_WHITELIST = 0x04, /**< Configure BLE whitelist. */
+    _TASK_BLE_FLAG_DO_NOTIFY_READ_REQ = 0x08      /**< Notify or request to read. */
+} taskBleFlag_t;
 
 /**
  * @brief Enumeration for BLE task events.
  *
  * This enum defines the events specific to BLE tasks.
  */
-typedef enum {
-    _TASK_BLE_EVENT_IT  /**< BLE interrupt event */
+typedef enum
+{
+    _TASK_BLE_EVENT_IT /**< BLE interrupt event */
 } taskBleEvent_t;
 
 // Struct ----------------------------------------------------------------------
@@ -109,9 +120,9 @@ typedef struct
     uint16_t connectionHandle;
 
     /**
-     * @brief Action to run in @ref _taskBleActionTick()
+     * @brief Flags to run in @ref _taskBleManageFlags()
      */
-    taskBleAction_t action;
+    taskBleFlag_t flags;
 
     /**
      * @brief Pairing in progress
@@ -186,7 +197,7 @@ void _taskBleMakeDiscoverable(bool bond);
 
 uint16_t _taskBleGetCharHandleFromAtt(bleAtt_t att);
 
-void _taskBleActionTick();
+void _taskBleManageFlags();
 void _taskBleEventDoorStateHandle();
 void _taskBleEventClearBondedDevicesHandle();
 
@@ -256,7 +267,7 @@ void taskBleCode(__attribute__((unused)) void *parameters)
             while (BlueNRG_Stack_Perform_Deep_Sleep_Check() == SLEEPMODE_RUNNING)
             {
                 BTLE_StackTick();
-                _taskBleActionTick();
+                _taskBleManageFlags();
             }
             boardLedOff();
             break;
@@ -334,11 +345,12 @@ int taskBleUpdateAtt(bleAtt_t att, const void *buf, size_t nbyte)
     return n;
 }
 
-void _taskBleActionTick()
+void _taskBleManageFlags()
 {
-    if (_taskBle.action == _TASK_BLE_ACTION_DO_SLAVE_SECURITY_REQUEST)
+    if _TASK_BLE_FLAG_IS (DO_SLAVE_SECURITY_REQ)
     {
-        _taskBle.action = _TASK_BLE_ACTION_NONE;
+        _TASK_BLE_FLAG_CLEAR(DO_SLAVE_SECURITY_REQ);
+
         _taskBle.bleStatus = aci_gap_slave_security_req(
             _taskBle.connectionHandle);
         if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
@@ -348,17 +360,35 @@ void _taskBleActionTick()
             taskBleSendEvent(BLE_EVENT_ERR);
         }
     }
-    else if (_taskBle.action == _TASK_BLE_ACTION_DO_CONFIGURE_WHITELIST)
+
+    if _TASK_BLE_FLAG_IS (DO_CONFIGURE_WHITELIST)
     {
-        _taskBle.action = _TASK_BLE_ACTION_NONE;
+        _TASK_BLE_FLAG_CLEAR(DO_CONFIGURE_WHITELIST);
         _taskBleUpdateWhitelist();
     }
-    else if (_taskBle.action == _TASK_BLE_ACTION_DO_ADVERTISING)
+
+    if _TASK_BLE_FLAG_IS (DO_ADVERTISING)
     {
-        _taskBle.action = _TASK_BLE_ACTION_NONE;
+        _TASK_BLE_FLAG_CLEAR(DO_ADVERTISING);
 
         // Make the device discoverable and linkable only to the device whitelist.
         _taskBleMakeDiscoverable(false);
+    }
+
+    if _TASK_BLE_FLAG_IS (DO_NOTIFY_READ_REQ)
+    {
+        _TASK_BLE_FLAG_CLEAR(DO_NOTIFY_READ_REQ);
+
+        // Update brightness befor read
+        float brightness = boardGetBrightness();
+        aci_gatt_update_char_value(
+            _taskBle.serviceAppHandle,
+            _taskBle.brightnessCharAppHandle,
+            0,             /* Val_Offset */
+            sizeof(float), /* Char_Value_Length */
+            (uint8_t *)&brightness);
+
+        aci_gatt_allow_read(_taskBle.connectionHandle);
     }
 }
 
@@ -630,8 +660,8 @@ void _taskBleUpdateWhitelist()
     if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
     {
         boardPrintf("Ble: update whitelist error: %s\r\n",
-                        _taskBleStatusToStr(_taskBle.bleStatus));
-            taskBleSendEvent(BLE_EVENT_ERR);
+                    _taskBleStatusToStr(_taskBle.bleStatus));
+        taskBleSendEvent(BLE_EVENT_ERR);
     }
 }
 
