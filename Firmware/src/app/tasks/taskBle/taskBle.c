@@ -194,12 +194,8 @@ const char *_taskBleStatusToStr(tBleStatus status);
 
 void _taskBleUpdateWhitelist();
 void _taskBleMakeDiscoverable(bool bond);
-
 uint16_t _taskBleGetCharHandleFromAtt(bleAtt_t att);
-
 void _taskBleManageFlags();
-void _taskBleEventDoorStateHandle();
-void _taskBleEventClearBondedDevicesHandle();
 
 // Implemented functions -------------------------------------------------------
 void taskBleCodeInit()
@@ -325,11 +321,14 @@ int taskBleUpdateAtt(bleAtt_t att, const void *buf, size_t nbyte)
     xSemaphoreTake(_taskBle.bleStackMutex, portMAX_DELAY);
     if (_taskBle.bleStatus == BLE_STATUS_SUCCESS)
     {
-        _taskBle.bleStatus = aci_gatt_update_char_value(
+        _taskBle.bleStatus = aci_gatt_update_char_value_ext(
+            _taskBle.connectionHandle,
             _taskBle.serviceAppHandle,
             charHandle,
-            0,     /* Val_Offset */
-            nbyte, /* Char_Value_Length */
+            1,      /* Update_Type: (1)GATT_NOTIFICATION */
+            nbyte,  /* Char_Length */
+            0,      /* Value_Offset */
+            nbyte,  /* Value_Length */
             (uint8_t *)buf);
 
         if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
@@ -390,45 +389,6 @@ void _taskBleManageFlags()
 
         aci_gatt_allow_read(_taskBle.connectionHandle);
     }
-}
-
-// Handle event implemented fonction Todo a raplaser par l'appele a taskBleWritAtt()
-void _taskBleEventDoorStateHandle()
-{
-    if (_taskBle.bleStatus == BLE_STATUS_SUCCESS)
-    {
-        bool doorState = boardIsOpen();
-        _taskBle.bleStatus = aci_gatt_update_char_value_ext(
-            _taskBle.connectionHandle,
-            _taskBle.serviceAppHandle,
-            _taskBle.doorStateCharAppHandle,
-            1, /* Update_Type: (1)GATT_NOTIFICATION */
-            1, /* Char_Length */
-            0, /* Value_Offset */
-            1, /* Value_Length */
-            (uint8_t *)&doorState);
-
-        if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
-        {
-            boardPrintf("Ble: write door state att error: %s\r\n",
-                        _taskBleStatusToStr(_taskBle.bleStatus));
-            taskBleSendEvent(BLE_EVENT_ERR);
-        }
-    }
-}
-
-void _taskBleEventClearBondedDevicesHandle()
-{
-    _taskBle.bleStatus = aci_gap_clear_security_db();
-
-    if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
-    {
-        boardPrintf("Ble: Error to clean bonded devices: %s\r\n",
-                    _taskBleStatusToStr(_taskBle.bleStatus));
-        taskBleSendEvent(BLE_EVENT_ERR);
-    }
-    else
-        boardPrintf("Ble: Clean bonded devices success.\r\n");
 }
 
 void BLE_IT_HANDLER()

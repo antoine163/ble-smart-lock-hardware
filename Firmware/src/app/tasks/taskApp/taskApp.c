@@ -349,13 +349,22 @@ void _taskAppBleEventLockHandle()
 
 void _taskAppBoardEventDoorStateHandle()
 {
-    // Update BLE characteristic
-    // taskBleEventDoorState();
-
     if (boardIsOpen() == true)
+    {
         boardPrintf("App: door is open.\r\n");
+
+        // Update BLE characteristic
+        uint8_t state = 1; 
+        taskBleUpdateAtt(BLE_ATT_DOOR_STATE, &state, 1);
+    }
     else
+    {
         boardPrintf("App: door is close.\r\n");
+
+        // Update BLE characteristic
+        uint8_t state = 0; 
+        taskBleUpdateAtt(BLE_ATT_DOOR_STATE, &state, 1);
+    }
 
     _taskAppManageLightColor(_taskApp.status);
 }
