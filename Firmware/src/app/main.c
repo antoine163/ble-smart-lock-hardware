@@ -33,7 +33,7 @@
 int main()
 {
     boardInit();
-    boardPrintf(" -- Ble Smart lock " "todo_version" " -- \r\n");
+    boardPrintf(" ---- Ble Smart lock " PROJECT_VERSION " ---- \r\n");
     tasksStaticInit();
     tasksStaticCreate();
     vTaskStartScheduler();

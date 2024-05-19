@@ -12,6 +12,19 @@ set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS ON)
 
+# Set VERSION from cmake argument or the last git hash.
+if(NOT DEFINED VERSION)
+    execute_process(
+        COMMAND git rev-parse --short HEAD
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+        OUTPUT_VARIABLE GIT_COMMIT_HASH
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    set(VERSION "${CMAKE_PROJECT_VERSION}-${GIT_COMMIT_HASH}")
+endif()
+
+message(STATUS "Project version: ${VERSION}")
+
 # Enable verbose to debug cmake
 # set(CMAKE_VERBOSE_MAKEFILE ON)
 
@@ -20,6 +33,7 @@ set(CMAKE_C_EXTENSIONS ON)
 add_compile_definitions(
     -DBLUENRG2_DEVICE
     -DBLE_STACK_CONFIGURATION=BLE_STACK_FULL_CONFIGURATION
+    -DPROJECT_VERSION="${VERSION}"
 )
 
 if(MODEL_BLUENRG STREQUAL "M2SP")
@@ -108,6 +122,7 @@ add_custom_command(TARGET ${CMAKE_PROJECT_NAME}.elf
     COMMAND ${CMAKE_OBJCOPY} -O binary ${CMAKE_PROJECT_NAME}.elf ${CMAKE_PROJECT_NAME}.bin
 )
 
+# disassemble
 add_custom_target(disassemble
     DEPENDS ${CMAKE_PROJECT_NAME}.elf
     COMMAND ${CMAKE_OBJDUMP} -hd ${CMAKE_PROJECT_NAME}.elf > ${CMAKE_PROJECT_NAME}.s
@@ -115,12 +130,7 @@ add_custom_target(disassemble
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )
 
-
-
-
-
-
-
+# To run cgdb
 add_custom_target(cgdb
     DEPENDS ${CMAKE_PROJECT_NAME}.elf
     COMMAND cgdb -d ${CMAKE_GDB} --command=${CMAKE_SOURCE_DIR}/tools/gdb/gdb_target.cfg --command=${CMAKE_SOURCE_DIR}/tools/gdb/gdbinit_debug.cfg ${CMAKE_PROJECT_NAME}.elf
