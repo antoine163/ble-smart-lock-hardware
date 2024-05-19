@@ -177,15 +177,6 @@ void taskAppCode(__attribute__((unused)) void *parameters)
             _taskApp.ticksToOffLight = portMAX_DELAY;
             taskLightAnimTrans(0, COLOR_OFF, 0);
         }
-
-        // Todo ...
-        // if ((_taskApp.ticksToClearBonded != portMAX_DELAY) &&
-        //     (xTaskCheckForTimeOut(&_taskApp.timeOutClearBonded, &_taskApp.ticksToClearBonded) != pdFALSE))
-        // {
-        //     // _taskApp.ticksToClearBonded = portMAX_DELAY;
-        //     // if (boardButtonBondState() == true)
-        //     //     taskBleClearAllPairing();
-        // }
     }
 }
 
@@ -236,7 +227,7 @@ void _taskAppManageLightColor(taskAppStatus_t lastStatus)
 
     case _TASK_APP_STATUS_BONDING:
     {
-        taskLightAnimTrans(200, COLOR_YELLOW, 1000);
+        taskLightAnimSin(200, COLOR_GREEN, 1);
         // Todo: set timeout to stop bond
         break;
     }
@@ -373,7 +364,7 @@ void _taskAppBoardEventButtonBondStateHandle()
 {
     if (boardButtonBondState() == true)
     {
-        // Enable clear bonded device timeout
+        // Enable timeout to disable bond if the button is not release during 3s
         _taskApp.ticksToClearBonded = _TASK_APP_CLEAR_BONDED_DELAY_TICK;
         vTaskSetTimeOutState(&_taskApp.timeOutClearBonded);
     }

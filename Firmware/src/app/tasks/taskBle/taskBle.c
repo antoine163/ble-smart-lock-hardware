@@ -57,6 +57,7 @@
 #define _TASK_BLE_BOND_ADV_INTERVAL_MAX_MS 320
 #define _TASK_BLE_ADV_INTERVAL_MIN_MS 600
 #define _TASK_BLE_ADV_INTERVAL_MAX_MS 900
+#define _TASK_BLE_DEFAULT_FIX_PIN 215426
 
 #define _TASK_BLE_EVENT_QUEUE_LENGTH 8
 
@@ -261,7 +262,7 @@ void taskBleCode(__attribute__((unused)) void *parameters)
         {
             boardLedOn();
             while (BlueNRG_Stack_Perform_Deep_Sleep_Check() == SLEEPMODE_RUNNING)
-            {
+            { // Todo, gérer le mode low power
                 BTLE_StackTick();
                 _taskBleManageFlags();
             }
@@ -480,7 +481,7 @@ tBleStatus _taskBleInitDevice()
         7,  // Minimum encryption key size
         16, // Maximum encryption key size
         USE_FIXED_PIN_FOR_PAIRING,
-        123456, // Fixed Pin
+        _TASK_BLE_DEFAULT_FIX_PIN, // Fixed Pin
         STATIC_RANDOM_ADDR);
     if (bleStatus != BLE_STATUS_SUCCESS)
         return bleStatus;
