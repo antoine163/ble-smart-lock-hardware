@@ -75,4 +75,7 @@ void taskBleBonding(bool enable);
 int taskBleClearAllPairing();
 int taskBleUpdateAtt(bleAtt_t att, const void *buf, size_t nbyte);
 
+
+
+
 #endif // TASK_BLE_H

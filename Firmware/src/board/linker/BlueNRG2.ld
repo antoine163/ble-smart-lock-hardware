@@ -1,9 +1,10 @@
 /*******************************************************************************
-* BlueNRG-2 generic linker file for ATOLLIC
+* BlueNRG-2 linker file
 * Main linker variables to control it are:
 *
-* MEMORY_FLASH_APP_SIZE: define the size of the application in case not all the flash is needed.
-* Default value is: 252KB when no OTA firmware upgrade is supported
+* MEMORY_FLASH_APP_SIZE: define the size of the application in case not all the 
+* flash is needed.
+* Default value is: 250KB
 *
 * MEMORY_FLASH_APP_OFFSET: define the offset of the application.
 * Default value is: 0 offset
@@ -11,15 +12,6 @@
 * MEMORY_RAM_APP_OFFSET: define the offset in RAM from which sections can be
 * allocated.
 * Default value is: 0x02CC
-* 
-* ST_OTA_HIGHER_APPLICATION: When defined application is built for OTA support
-* in the higher part of memory
-*
-* ST_OTA_LOWER_APPLICATION: When defined application is built for OTA support
-* in the lower part of memory
-*
-* ST_USE_OTA_SERVICE_MANAGER_APPLICATION: When defined application is built for
-* OTA firmware upgrade support with separated application for firmware upgrade
 *
 *******************************************************************************/
 
@@ -59,6 +51,8 @@ _MEMORY_ROM_END_     = 0x100007FF;
 
 /* Reserved for BTLE stack non volatile memory */
 FLASH_NVM_DATASIZE   = (4*1024);
+/* Reserved for APP data non volatile memory */
+FLASH_NVM2_DATASIZE  = (2*1024);
 
 
   /* This configuration is intended for application not supporting OTA firmware upgrade */
@@ -69,12 +63,15 @@ FLASH_NVM_DATASIZE   = (4*1024);
   +-----------------------+ 0x20000000
   |                       |
   |                       |
-  +-----------------------+ 0x10068000
+  +-----------------------+ 0x10080000
   |                       |
   |  NVM(4K)              |
   +-----------------------+ 0x1007F000
   |                       |
-  |  User app (252K)      |
+  |  NVM2(2K)             |
+  +-----------------------+ 0x1007e800
+  |                       |
+  |  User app (250K)      |
   +-----------------------+ 0x10040000
   |                       |
   +-----------------------| 0x100007FF
@@ -82,117 +79,9 @@ FLASH_NVM_DATASIZE   = (4*1024);
   +-----------------------+ 0x10000000
 */
 
-MEMORY_FLASH_APP_OFFSET = DEFINED(MEMORY_FLASH_APP_OFFSET) ? (MEMORY_FLASH_APP_OFFSET) : (0) ;
-MEMORY_FLASH_APP_SIZE = DEFINED(MEMORY_FLASH_APP_SIZE) ? (MEMORY_FLASH_APP_SIZE) : ( _MEMORY_FLASH_SIZE_ - FLASH_NVM_DATASIZE - MEMORY_FLASH_APP_OFFSET);
-MEMORY_RAM_APP_OFFSET = DEFINED(MEMORY_RAM_APP_OFFSET) ? (MEMORY_RAM_APP_OFFSET) : (0x2CC) ;
-
-RESET_MANAGER_SIZE = DEFINED(RESET_MANAGER_SIZE) ? RESET_MANAGER_SIZE : 0x800 ;
-
-
-/* 
-   *****************************
-   * ST_OTA_HIGHER_APPLICATION *
-   *****************************
-*/
-   /* This configuration is intended for application supporting OTA firmware upgrade with 2-app scheme (app in the upper part of memory map) */
-  /*
-     BlueNRG-2 OTA firmware upgrade support for higher application memory map
-     +-----------------------+ 0x20005FFF
-     |  RAM (24K-4)          |
-     +-----------------------+ 0x20000004
-     |                       |
-     |                       |
-     +-----------------------+ 0x10080000
-     |                       |
-     |  NVM(4K)              |
-     +-----------------------+ 0x1007E800
-     |                       |
-     |  Higher app (124K)    |
-     +-----------------------+ 0x1005F800
-     |                       |
-     |  Lower app (124K)     |
-     +-----------------------| 0x10040800
-     |   Reset Manager (2K)  |
-     +-----------------------+ 0x10040000
-     |                       |
-     +-----------------------| 0x100007FF
-     |   ROM (2K)            |
-     +-----------------------+ 0x10000000
-  */
-
-
-MEMORY_FLASH_APP_SIZE = DEFINED(ST_OTA_HIGHER_APPLICATION) ? (((_MEMORY_FLASH_SIZE_ - RESET_MANAGER_SIZE - FLASH_NVM_DATASIZE) / 2) / 2048) * 2048 : MEMORY_FLASH_APP_SIZE ;
-MEMORY_FLASH_APP_OFFSET = DEFINED(ST_OTA_HIGHER_APPLICATION) ? (RESET_MANAGER_SIZE + MEMORY_FLASH_APP_SIZE) : MEMORY_FLASH_APP_OFFSET ;
-
-
-/* 
-   *****************************
-   * ST_OTA_LOWER_APPLICATION *
-   *****************************
-*/
-  /* This configuration is intended for application supporting OTA firmware upgrade with 2-app scheme (app in the lower part of memory map) */
-  /*
-     BlueNRG-2 OTA firmware upgrade support for lower application memory map
-     +-----------------------+ 0x20005FFF
-     |  RAM (24K-4)          |
-     +-----------------------+ 0x20000004
-     |                       |
-     |                       |
-     +-----------------------+ 0x10080000
-     |                       |
-     |  NVM(4K)              |
-     +-----------------------+ 0x1007E800
-     |                       |
-     |  Higher app (124K)    |
-     +-----------------------+ 0x10053800
-     |                       |
-     |  Lower app (124K)     |
-     +-----------------------| 0x10040800
-     |   Reset Manager (2K)  |
-     +-----------------------+ 0x10040000
-     |                       |
-     +-----------------------| 0x100007FF
-     |   ROM (2K)            |
-     +-----------------------+ 0x10000000
-  */
-
-MEMORY_FLASH_APP_SIZE = DEFINED(ST_OTA_LOWER_APPLICATION) ? (((_MEMORY_FLASH_SIZE_ - RESET_MANAGER_SIZE - FLASH_NVM_DATASIZE) / 2) / 2048) * 2048 : MEMORY_FLASH_APP_SIZE ;
-MEMORY_FLASH_APP_OFFSET = DEFINED(ST_OTA_LOWER_APPLICATION) ? (RESET_MANAGER_SIZE) : MEMORY_FLASH_APP_OFFSET ;
-
-
-/* 
-   ******************************************
-   * ST_USE_OTA_SERVICE_MANAGER_APPLICATION *
-   ******************************************
-*/
-  /* This configuration is intended for application supporting OTA firmware upgrade with independent OTA firmware upgrade service manager
-  (app in the upper part of memory map) */
-  /*
-     BlueNRG-2 OTA firmware upgrade support for service manager application memory map
-     +-----------------------+ 0x20005FFF
-     |  RAM (24K-4)          |
-     +-----------------------+ 0x20000004
-     |                       |
-     |                       |
-     +-----------------------+ 0x10080000
-     |                       |
-     |  NVM(4K)              |
-     +-----------------------+ 0x1007F000
-     |                       |
-     |  User app (182K)      |
-     +-----------------------+ 0x10051800
-     | OTA Service           |
-     | Manager (70K)         |
-     +-----------------------+ 0x10040000
-     |                       |
-     +-----------------------| 0x100007FF
-     |   ROM (2K)            |
-     +-----------------------+ 0x10000000
-  */
-
-SERVICE_MANAGER_SIZE = 0x11800;
-MEMORY_FLASH_APP_SIZE = DEFINED(ST_USE_OTA_SERVICE_MANAGER_APPLICATION) ? (_MEMORY_FLASH_SIZE_ - SERVICE_MANAGER_SIZE - FLASH_NVM_DATASIZE) : MEMORY_FLASH_APP_SIZE ;
-MEMORY_FLASH_APP_OFFSET = DEFINED(ST_USE_OTA_SERVICE_MANAGER_APPLICATION) ? (SERVICE_MANAGER_SIZE) : MEMORY_FLASH_APP_OFFSET ;
+MEMORY_FLASH_APP_OFFSET = (0) ;
+MEMORY_FLASH_APP_SIZE =  _MEMORY_FLASH_SIZE_ - FLASH_NVM_DATASIZE - FLASH_NVM2_DATASIZE - MEMORY_FLASH_APP_OFFSET;
+MEMORY_RAM_APP_OFFSET = 0x2CC;
 
 /* Entry Point */
 ENTRY(RESET_HANDLER)
@@ -206,25 +95,15 @@ _Min_Stack_Size = 0xC00; /* required amount of stack */
 MEMORY
 {
   REGION_RAM (xrw)         		: ORIGIN = _MEMORY_RAM_BEGIN_, LENGTH = _MEMORY_RAM_SIZE_
-  REGION_FLASH_BOOTLOADER (rx)  : ORIGIN = _MEMORY_FLASH_BEGIN_, LENGTH = MEMORY_FLASH_APP_OFFSET
+  REGION_NVM(rx)          		: ORIGIN = _MEMORY_FLASH_END_ + 1 - FLASH_NVM_DATASIZE, LENGTH = FLASH_NVM_DATASIZE
+  REGION_NVM2(rx)          		: ORIGIN = _MEMORY_FLASH_END_ + 1 - FLASH_NVM_DATASIZE - FLASH_NVM2_DATASIZE, LENGTH = FLASH_NVM2_DATASIZE
   REGION_FLASH (rx)        		: ORIGIN = _MEMORY_FLASH_BEGIN_ + MEMORY_FLASH_APP_OFFSET, LENGTH = MEMORY_FLASH_APP_SIZE
-  REGION_NVM (rx)          		: ORIGIN = _MEMORY_FLASH_END_ + 1 - FLASH_NVM_DATASIZE, LENGTH = FLASH_NVM_DATASIZE
   REGION_ROM (rx)          		: ORIGIN = _MEMORY_ROM_BEGIN_, LENGTH = _MEMORY_ROM_SIZE_
 }
 
 /* Define output sections */
 SECTIONS
 {  
-  /* The startup code goes first into FLASH */
-  .bootloader (ORIGIN(REGION_FLASH_BOOTLOADER)) :
-  {
-    . = ALIGN(4);
-    
-    KEEP(*(.bootloader)) /* Startup code */
-    
-    . = ALIGN(4);
-  } >REGION_FLASH_BOOTLOADER
-
   /* The startup code goes first into FLASH */
   .intvec (ORIGIN(REGION_FLASH)) :
   {
@@ -345,7 +224,7 @@ SECTIONS
 * stores its security database and other non-volatile information in this area.
 * The linker needs to make sure this area is left empty.
 */
-  BLOCK_STACKLIB_FLASH_DATA (_MEMORY_FLASH_END_ - FLASH_NVM_DATASIZE + 1) (NOLOAD) :
+  BLOCK_STACKLIB_FLASH_DATA (_MEMORY_FLASH_END_ +1 - FLASH_NVM_DATASIZE) (NOLOAD) :
   {
     . = ALIGN(2048);
     
@@ -353,6 +232,18 @@ SECTIONS
     KEEP(*(.noinit.stacklib_stored_device_id_data))
     
   } >REGION_NVM
+
+  /**
+  * One sectors of FLASH are reserved for APP data. The BLE Host
+  * The linker needs to make sure this area is left empty.
+  */
+  BLOCK_APP_FLASH_DATA (_MEMORY_FLASH_END_ +1 - FLASH_NVM_DATASIZE - FLASH_NVM2_DATASIZE) (NOLOAD) :
+  {
+    . = ALIGN(2048);
+    
+    KEEP(*(.noinit.app_flash_data))
+    
+  } >REGION_NVM2
 
 
 

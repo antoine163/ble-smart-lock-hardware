@@ -263,6 +263,7 @@ void taskBleCode(__attribute__((unused)) void *parameters)
             boardLedOn();
             while (BlueNRG_Stack_Perform_Deep_Sleep_Check() == SLEEPMODE_RUNNING)
             { // Todo, gérer le mode low power
+              // Todo, activer/desactiver la securiter ble
                 BTLE_StackTick();
                 _taskBleManageFlags();
             }

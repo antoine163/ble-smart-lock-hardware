@@ -45,25 +45,6 @@
 /* Default number of GAP and GATT attributes */
 #define DEFAULT_NUM_GATT_ATTRIBUTES (11)
 
-/* Enable/disable Data length extension Max supported ATT_MTU size based on OTA client & server Max ATT_MTU sizes capabilities */
-#if (CONTROLLER_DATA_LENGTH_EXTENSION_ENABLED == 1) && (OTA_EXTENDED_PACKET_LEN == 1)
-#define OTA_MAX_ATT_MTU_SIZE (OTA_ATT_MTU_SIZE) /* OTA Client & Server supported ATT_MTU */
-#else                                           /* BlueNRG-1 device: no data length extension support */
-#define OTA_MAX_ATT_MTU_SIZE (DEFAULT_ATT_MTU)  /* DEFAULT_ATT_MTU size = 23 bytes */
-#endif
-
-#if defined(ST_OTA_LOWER_APPLICATION) || defined(ST_OTA_HIGHER_APPLICATION)
-/* Number of services requests from "Ble Smart Lock" */
-#define NUM_APP_GATT_SERVICES (1 + 1) /* 1 "Ble Smart Lock" service + 1 OTA service */
-/* Number of attributes requests from the "Ble Smart Lock" */
-#define NUM_APP_GATT_ATTRIBUTES (5 + 9) /* 5 attributes x BLE "Ble Smart Lock" service characteristics + 9 for OTA Service characteristics */
-/**
- * Set the number of 16-bytes units used on an OTA FW data packet for matching OTA client MAX ATT_MTU
- */
-#define OTA_16_BYTES_BLOCKS_NUMBER ((OTA_MAX_ATT_MTU_SIZE - 4) / 16) /* 4 bytes for OTA sequence numbers + needs ack + checksum bytes */
-/* OTA characteristics maximum lenght */
-#define OTA_MAX_ATT_SIZE (4 + OTA_16_BYTES_BLOCKS_NUMBER * 16)
-#else                           /* NO OTA Service is required */
 /* Number of services requests from "Ble Smart Lock" */
 #define NUM_APP_GATT_SERVICES 1 /* 1 "Ble Smart Lock" service */
 
@@ -81,7 +62,6 @@
 
 /* OTA characteristics maximum lenght */
 #define OTA_MAX_ATT_SIZE (0)
-#endif
 
 #define MAX_CHAR_LEN(a, b) ((a) > (b)) ? (a) : (b)
 
@@ -99,15 +79,6 @@
 
 /* Number of GATT services needed for "Ble Smart Lock". */
 #define NUM_GATT_SERVICES (DEFAULT_NUM_GATT_SERVICES + NUM_APP_GATT_SERVICES)
-
-/* Array size for the attribute value for OTA service */
-#if defined(ST_OTA_LOWER_APPLICATION) || defined(ST_OTA_HIGHER_APPLICATION)
-/* OTA service: 4 characteristics (1 notify property): 99 bytes +
-   Image Content characteristic length = 4  + (OTA_16_BYTES_BLOCKS_NUMBER * 16); 4 for sequence number, checksum and needs acks bytes */
-#define OTA_ATT_VALUE_ARRAY_SIZE (99 + (4 + (OTA_16_BYTES_BLOCKS_NUMBER * 16)))
-#else
-#define OTA_ATT_VALUE_ARRAY_SIZE (0) /* No OTA service is used */
-#endif
 
 /* Array size for the attribute value */
 #define ATT_VALUE_ARRAY_SIZE (44 + 16 + 106) /* 44 Only GATT & GAP default services + 16 max device name + 106 app characteristic*/
@@ -129,11 +100,7 @@
 #define FLASH_SERVER_DB_SIZE (0x400)
 
 /* Set supported max value for ATT_MTU enabled by the application */
-#if (CONTROLLER_DATA_LENGTH_EXTENSION_ENABLED == 1) && (OTA_EXTENDED_PACKET_LEN == 1)
-#define MAX_ATT_MTU (OTA_MAX_ATT_MTU_SIZE)
-#else
 #define MAX_ATT_MTU (DEFAULT_ATT_MTU)
-#endif
 
 /* Set supported max value for attribute size: it is the biggest attribute size enabled by the application */
 #define MAX_ATT_SIZE (APP_MAX_ATT_SIZE)
