@@ -47,9 +47,9 @@
 
 #define _TASK_APP_RESTART_DELAY_TICK (1 * 60 * 1000 / portTICK_PERIOD_MS)    //!< Tick to wait before restarting following error detection: 1min
 #define _TASK_APP_OFF_LIGHT_DELAY_TICK (15 * 60 * 1000 / portTICK_PERIOD_MS) //!< Tick to wait before torn off light following disconnection: 15min
-#define _TASK_APP_CLEAR_BONDED_DELAY_TICK (3 * 1000 / portTICK_PERIOD_MS)    //!< Tick to wait before clear all bonded devices: 3s
-#define _TASK_APP_EVENT_QUEUE_LENGTH 8
+#define _TASK_APP_CLEAR_BONDED_DELAY_TICK (3 * 1000 / portTICK_PERIOD_MS)    //!< Tick to wait before clear all bonded devices from push bond button: 3s
 
+#define _TASK_APP_EVENT_QUEUE_LENGTH 8
 #define _TASK_APP_DATA_STORAGE_PAGE (N_PAGES - 3)
 
 #define _TASK_APP_CHECK_VERBOSE(verbose) ((verbose == true) || (verbose == false))
@@ -57,38 +57,53 @@
 #define _TASK_APP_CHECK_BRIGHTNESS_TH(th) ((th >= 0.) && (th <= 100.))
 
 // Enum ------------------------------------------------------------------------
+/**
+ * @brief Enum representing the application status of the task.
+ */
 typedef enum
 {
-    _TASK_APP_STATUS_BLE_ERROR,    //!< Indicates a ble radio error.
-    _TASK_APP_STATUS_BONDING,      //!< Indicates that the device is bonding.
-    _TASK_APP_STATUS_DISCONNECTED, //!< Indicates that the device is disconnected.
-    _TASK_APP_STATUS_CONNECTED,    //!< Indicates that the device is connected.
-    _TASK_APP_STATUS_UNLOCKED      //!< Indicates that the device is unlocked.
+    _TASK_APP_STATUS_BLE_ERROR,    /**< Indicates a BLE radio error. */
+    _TASK_APP_STATUS_BONDING,      /**< Indicates that the device is bonding. */
+    _TASK_APP_STATUS_DISCONNECTED, /**< Indicates that the device is disconnected. */
+    _TASK_APP_STATUS_CONNECTED,    /**< Indicates that the device is connected. */
+    _TASK_APP_STATUS_UNLOCKED      /**< Indicates that the device is unlocked. */
 } taskAppStatus_t;
 
+/**
+ * @brief Enum representing the different events for the application task.
+ */
 typedef enum
 {
-    _TASK_APP_EVENT_BOARD,
-    _TASK_APP_EVENT_WRITE_NVM
+    _TASK_APP_EVENT_BOARD,        /**< Event related to the board. */
+    _TASK_APP_EVENT_WRITE_NVM     /**< Event for writing to non-volatile memory. */
 } taskAppEvent_t;
 
+
 // Struct ----------------------------------------------------------------------
+
+/**
+ * @brief Struct representing the non-volatile memory data for the application task.
+ */
 typedef struct
 {
-    bool verbose;
-    uint32_t pin;
-    float brightnessTh;
+    bool verbose;         /**< Verbose mode flag. */
+    uint32_t pin;         /**< PIN number. */
+    float brightnessTh;   /**< Brightness threshold value. */
 } taskAppNvmData_t;
 
+/**
+ * @brief Struct representing an item of an application task event.
+ */
 typedef struct
 {
-    taskAppEvent_t event;
+    taskAppEvent_t event; /**< Type of the event. */
     union
     {
-        boardEvent_t boardEvent;
-        taskAppNvmData_t nvmNewData;
+        boardEvent_t boardEvent;      /**< Event related to the board. */
+        taskAppNvmData_t nvmNewData;  /**< New non-volatile memory data. */
     };
 } taskAppEventItem_t;
+
 
 typedef struct
 {
@@ -100,7 +115,7 @@ typedef struct
     // App status
     taskAppStatus_t status;
 
-    // Timeout to manage reset follows an error
+    // Timeout to manage reset follows an error.
     TickType_t ticksToRestart;
     TimeOut_t timeOutRestart;
 
@@ -108,7 +123,7 @@ typedef struct
     TickType_t ticksToOffLight;
     TimeOut_t timeOutOffLight;
 
-    // Timeout to manage clean all bonded device
+    // Timeout to manage clean all bonded device follows pushed bond button.
     TickType_t ticksToClearBonded;
     TimeOut_t timeOutClearBonded;
 } taskApp_t;
@@ -130,8 +145,6 @@ void _taskAppSetLightOn();
 void _taskAppBleEventErrHandle();
 void _taskAppBleEventDisconnectedHandle();
 void _taskAppBleEventConnectedHandle();
-
-void _taskAppBleEventLockHandle();
 
 void _taskAppBoardEventDoorStateHandle();
 void _taskAppBoardEventButtonBondStateHandle();
@@ -442,14 +455,6 @@ void _taskAppBleEventDisconnectedHandle()
 void _taskAppBleEventConnectedHandle()
 {
     boardPrintf("App: device connected.\r\n");
-    _taskAppSetStatus(_TASK_APP_STATUS_CONNECTED);
-}
-
-void _taskAppBleEventLockHandle()
-{
-    boardPrintf("App: Lock the lock.\r\n");
-    boardLock();
-
     _taskAppSetStatus(_TASK_APP_STATUS_CONNECTED);
 }
 
