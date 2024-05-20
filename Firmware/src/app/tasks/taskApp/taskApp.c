@@ -48,6 +48,7 @@
 #define _TASK_APP_RESTART_DELAY_TICK (1 * 60 * 1000 / portTICK_PERIOD_MS)    //!< Tick to wait before restarting following error detection: 1min
 #define _TASK_APP_OFF_LIGHT_DELAY_TICK (15 * 60 * 1000 / portTICK_PERIOD_MS) //!< Tick to wait before torn off light following disconnection: 15min
 #define _TASK_APP_CLEAR_BONDED_DELAY_TICK (3 * 1000 / portTICK_PERIOD_MS)    //!< Tick to wait before clear all bonded devices from push bond button: 3s
+#define _TASK_APP_EXIT_BOND_DELAY_TICK (10 * 1000 / portTICK_PERIOD_MS)      //!< Tick to wait before exit the bond mode from active it: 10s
 
 #define _TASK_APP_EVENT_QUEUE_LENGTH 8
 #define _TASK_APP_DATA_STORAGE_PAGE (N_PAGES - 3)
@@ -56,28 +57,42 @@
 #define _TASK_APP_CHECK_PIN(pin) (pin <= 999999)
 #define _TASK_APP_CHECK_BRIGHTNESS_TH(th) ((th >= 0.) && (th <= 100.))
 
+#define _TASK_APP_MIN(v1, v2) (v1 < v2) ? v1 : v2
+
+// Flag tools
+#define _TASK_APP_FLAG_SET(name_flag) \
+    _taskApp.flags |= _TASK_APP_FLAG_##name_flag;
+
+#define _TASK_APP_FLAG_CLEAR(name_flag) \
+    _taskApp.flags &= (~_TASK_APP_FLAG_##name_flag);
+
+#define _TASK_APP_FLAG_IS(name_flag) \
+    ((_taskApp.flags & _TASK_APP_FLAG_##name_flag) != 0)
+
+#define _TASK_APP_LAST_FLAG_IS(name_flag) \
+    ((_taskApp.lastFlags & _TASK_APP_FLAG_##name_flag) != 0)
+
 // Enum ------------------------------------------------------------------------
-/**
- * @brief Enum representing the application status of the task.
- */
+
 typedef enum
 {
-    _TASK_APP_STATUS_BLE_ERROR,    /**< Indicates a BLE radio error. */
-    _TASK_APP_STATUS_BONDING,      /**< Indicates that the device is bonding. */
-    _TASK_APP_STATUS_DISCONNECTED, /**< Indicates that the device is disconnected. */
-    _TASK_APP_STATUS_CONNECTED,    /**< Indicates that the device is connected. */
-    _TASK_APP_STATUS_UNLOCKED      /**< Indicates that the device is unlocked. */
-} taskAppStatus_t;
+    _TASK_APP_FLAG_BLE_NONE = 0x00,
+    _TASK_APP_FLAG_BLE_ERROR = 0x01,
+    _TASK_APP_FLAG_BONDING = 0x02,
+    _TASK_APP_FLAG_UNLOCKED = 0x04,
+    _TASK_APP_FLAG_OPENED = 0x08,
+    _TASK_APP_FLAG_CONNECTED = 0x10
+} taskAppFlags_t;
 
 /**
  * @brief Enum representing the different events for the application task.
  */
 typedef enum
 {
-    _TASK_APP_EVENT_BOARD,        /**< Event related to the board. */
-    _TASK_APP_EVENT_WRITE_NVM     /**< Event for writing to non-volatile memory. */
+    _TASK_APP_EVENT_BOARD,    /**< Event related to the board. */
+    _TASK_APP_EVENT_BLE,      /**< Event related to the BLE. */
+    _TASK_APP_EVENT_WRITE_NVM /**< Event for writing to non-volatile memory. */
 } taskAppEvent_t;
-
 
 // Struct ----------------------------------------------------------------------
 
@@ -86,9 +101,9 @@ typedef enum
  */
 typedef struct
 {
-    bool verbose;         /**< Verbose mode flag. */
-    uint32_t pin;         /**< PIN number. */
-    float brightnessTh;   /**< Brightness threshold value. */
+    bool verbose;       /**< Verbose mode flag. */
+    uint32_t pin;       /**< PIN number. */
+    float brightnessTh; /**< Brightness threshold value. */
 } taskAppNvmData_t;
 
 /**
@@ -99,11 +114,11 @@ typedef struct
     taskAppEvent_t event; /**< Type of the event. */
     union
     {
-        boardEvent_t boardEvent;      /**< Event related to the board. */
-        taskAppNvmData_t nvmNewData;  /**< New non-volatile memory data. */
+        boardEvent_t boardEvent;     /**< Event related to the board. */
+        bleEvent_t bleEvent;         /**< Event related to the board. */
+        taskAppNvmData_t nvmNewData; /**< New non-volatile memory data. */
     };
 } taskAppEventItem_t;
-
 
 typedef struct
 {
@@ -112,8 +127,9 @@ typedef struct
     StaticQueue_t eventQueueBuffer;
     uint8_t eventQueueStorageArea[sizeof(taskAppEventItem_t) * _TASK_APP_EVENT_QUEUE_LENGTH];
 
-    // App status
-    taskAppStatus_t status;
+    // App flags
+    taskAppFlags_t flags;
+    taskAppFlags_t lastFlags;
 
     // Timeout to manage reset follows an error.
     TickType_t ticksToRestart;
@@ -126,6 +142,11 @@ typedef struct
     // Timeout to manage clean all bonded device follows pushed bond button.
     TickType_t ticksToClearBonded;
     TimeOut_t timeOutClearBonded;
+    bool clearBondedLightFlash;
+
+    // Timeout to manage the exit from bond mode after activating it.
+    TickType_t ticksToExitBond;
+    TimeOut_t timeOutExitBond;
 } taskApp_t;
 
 // Global variables ------------------------------------------------------------
@@ -137,9 +158,7 @@ static const taskAppNvmData_t _taskAppNvmDefaultData = {
     .brightnessTh = 50.f};
 
 // Private prototype functions -------------------------------------------------
-void _taskAppManageLightColor(taskAppStatus_t lastStatus);
-
-void _taskAppSetStatus(taskAppStatus_t status);
+void _taskAppUpdateLight();
 void _taskAppSetLightOn();
 
 void _taskAppBleEventErrHandle();
@@ -160,10 +179,12 @@ void taskAppCodeInit()
                                              _taskApp.eventQueueStorageArea,
                                              &_taskApp.eventQueueBuffer);
 
-    _taskApp.status = _TASK_APP_STATUS_DISCONNECTED;
+    _taskApp.flags = _TASK_APP_FLAG_BLE_NONE;
+    _taskApp.lastFlags = _TASK_APP_FLAG_BLE_NONE;
     _taskApp.ticksToRestart = portMAX_DELAY;
     _taskApp.ticksToOffLight = portMAX_DELAY;
     _taskApp.ticksToClearBonded = portMAX_DELAY;
+    _taskApp.ticksToExitBond = portMAX_DELAY;
 
     _taskAppNvmInit();
 }
@@ -180,19 +201,18 @@ void taskAppCode(__attribute__((unused)) void *parameters)
     // Door is open ?
     if (boardIsOpen() == true)
     {
-        _taskAppSetLightOn();
-
-        // Turn off the red light in 15 minutes if there are no new.
-        // events.
-        _taskApp.ticksToOffLight = _TASK_APP_OFF_LIGHT_DELAY_TICK;
-        vTaskSetTimeOutState(&_taskApp.timeOutOffLight);
+        _TASK_APP_FLAG_SET(OPENED);
+        _taskAppUpdateLight();
     }
 
     while (1)
     {
-        TickType_t ticksToWait = _taskApp.ticksToRestart;
-        if (_taskApp.ticksToOffLight < ticksToWait)
-            ticksToWait = _taskApp.ticksToOffLight;
+        // Get next timeout
+        TickType_t ticksToWait = portMAX_DELAY;
+        ticksToWait = _TASK_APP_MIN(ticksToWait, _taskApp.ticksToRestart);
+        ticksToWait = _TASK_APP_MIN(ticksToWait, _taskApp.ticksToOffLight);
+        ticksToWait = _TASK_APP_MIN(ticksToWait, _taskApp.ticksToClearBonded);
+        ticksToWait = _TASK_APP_MIN(ticksToWait, _taskApp.ticksToExitBond);
 
         if (xQueueReceive(_taskApp.eventQueue, &eventItem, ticksToWait) == pdPASS)
         {
@@ -209,8 +229,22 @@ void taskAppCode(__attribute__((unused)) void *parameters)
                 case BOARD_EVENT_BUTTON_BOND_STATE:
                     _taskAppBoardEventButtonBondStateHandle();
                     break;
+                }
+                break;
+            }
 
-                default:
+            case _TASK_APP_EVENT_BLE:
+            {
+                switch (eventItem.bleEvent)
+                {
+                case BLE_EVENT_ERR:
+                    _taskAppBleEventErrHandle();
+                    break;
+                case BLE_EVENT_CONNECTED:
+                    _taskAppBleEventConnectedHandle();
+                    break;
+                case BLE_EVENT_DISCONNECTED:
+                    _taskAppBleEventDisconnectedHandle();
                     break;
                 }
                 break;
@@ -226,11 +260,10 @@ void taskAppCode(__attribute__((unused)) void *parameters)
 
                 break;
             }
-
-            default:
-                break;
             }
         }
+
+        // Manage timeout
 
         if ((_taskApp.ticksToRestart != portMAX_DELAY) &&
             (xTaskCheckForTimeOut(&_taskApp.timeOutRestart, &_taskApp.ticksToRestart) != pdFALSE))
@@ -243,6 +276,41 @@ void taskAppCode(__attribute__((unused)) void *parameters)
         {
             _taskApp.ticksToOffLight = portMAX_DELAY;
             taskLightAnimTrans(0, COLOR_OFF, 0);
+        }
+
+        if ((_taskApp.ticksToClearBonded != portMAX_DELAY) &&
+            (xTaskCheckForTimeOut(&_taskApp.timeOutClearBonded, &_taskApp.ticksToClearBonded) != pdFALSE))
+        {
+            _taskApp.ticksToClearBonded = portMAX_DELAY;
+
+            if (_taskApp.clearBondedLightFlash == false)
+            {
+                taskBleClearAllPairing();
+                taskLightAnimBlink(0, COLOR_WHITE, 80, 120);
+
+                // Wait tow flash befor restore light state
+                _taskApp.ticksToClearBonded = 600 / portTICK_PERIOD_MS;
+                vTaskSetTimeOutState(&_taskApp.timeOutClearBonded);
+                _taskApp.clearBondedLightFlash = true;
+            }
+            else
+            {
+                _taskApp.clearBondedLightFlash = false;
+
+                // Restore stats of light
+                _taskAppUpdateLight();
+            }
+        }
+
+        if ((_taskApp.ticksToExitBond != portMAX_DELAY) &&
+            (xTaskCheckForTimeOut(&_taskApp.timeOutExitBond, &_taskApp.ticksToExitBond) != pdFALSE))
+        {
+            // Disable exit bond timeout
+            _taskApp.ticksToExitBond = portMAX_DELAY;
+
+            taskBleSetBondMode(false);
+            _TASK_APP_FLAG_CLEAR(BONDING);
+            _taskAppUpdateLight();
         }
     }
 }
@@ -322,11 +390,13 @@ int taskAppSetVerbose(bool verbose)
 
 void taskAppUnlock()
 {
-    if (_taskApp.status == _TASK_APP_STATUS_CONNECTED)
+    if _TASK_APP_FLAG_IS (CONNECTED)
     {
         boardPrintf("App: unlock the lock.\r\n");
         boardUnlock();
-        _taskAppSetStatus(_TASK_APP_STATUS_UNLOCKED);
+
+        _TASK_APP_FLAG_SET(UNLOCKED);
+        _taskAppUpdateLight();
     }
     else
         boardPrintf("App: Can't unlock if unconnected device.\r\n");
@@ -344,84 +414,66 @@ void taskAppOpenDoor()
     boardOpen();
 }
 
-void _taskAppManageLightColor(taskAppStatus_t lastStatus)
+void _taskAppUpdateLight()
 {
-    switch (_taskApp.status)
+    // Todo a anlever ou pas ?
+    // if (_taskApp.lastFlags == _taskApp.flags)
+    //     return;
+
+    // Disable turn off the light in 15 minutes if there are no new events.
+    _taskApp.ticksToOffLight = portMAX_DELAY;
+
+    // ERROR ?
+    if _TASK_APP_FLAG_IS (BLE_ERROR)
     {
-    case _TASK_APP_STATUS_BLE_ERROR:
         taskLightAnimTrans(0, COLOR_RED, 0);
         // Note: the device will be reset in 1min
-        break;
-
-    case _TASK_APP_STATUS_BONDING:
-    {
-        taskLightAnimSin(200, COLOR_GREEN, 1);
-        // Todo: set timeout to stop bond
-        break;
     }
-    case _TASK_APP_STATUS_DISCONNECTED:
+    // Bond mode ?
+    else if _TASK_APP_FLAG_IS (BONDING)
     {
-        if (boardIsOpen() == true)
+        if (!_TASK_APP_LAST_FLAG_IS(BONDING))
+            taskLightAnimSin(200, COLOR_GREEN, 1);
+    }
+    // Connected ?
+    else if _TASK_APP_FLAG_IS (CONNECTED)
+    {
+        if _TASK_APP_FLAG_IS (OPENED)
+            _taskAppSetLightOn();
+        else if _TASK_APP_FLAG_IS (UNLOCKED)
+            taskLightAnimTrans(200, COLOR_BLUE, 500);
+        else
+            taskLightAnimSin(200, COLOR_BLUE, 0.2f);
+    }
+    // Disconnected ?
+    else
+    {
+        if _TASK_APP_FLAG_IS (OPENED)
         {
-            if ((_TASK_APP_STATUS_DISCONNECTED == lastStatus))
-            {
-                // Here, the door was opened with the key.
-                _taskAppSetLightOn();
-
-                // Turn off the red light in 15 minutes if there are no new.
-                // events.
-                _taskApp.ticksToOffLight = _TASK_APP_OFF_LIGHT_DELAY_TICK;
-                vTaskSetTimeOutState(&_taskApp.timeOutOffLight);
-            }
-            else
+            // Last flag is connected ?
+            if _TASK_APP_LAST_FLAG_IS (CONNECTED)
             {
                 // Ble device is disconnected but the door is open.
                 // Turns on the red light to try to warn the user.
                 taskLightAnimBlink(0, COLOR_RED, 100, 500);
-
-                // Turn off the red light in 15 minutes if there are no new.
-                // events.
-                _taskApp.ticksToOffLight = _TASK_APP_OFF_LIGHT_DELAY_TICK;
-                vTaskSetTimeOutState(&_taskApp.timeOutOffLight);
             }
+            else
+            {
+                // Here, the door was opened with the key.
+                _taskAppSetLightOn();
+            }
+
+            // Turn off the light in 15 minutes if there are no new events.
+            _taskApp.ticksToOffLight = _TASK_APP_OFF_LIGHT_DELAY_TICK;
+            vTaskSetTimeOutState(&_taskApp.timeOutOffLight);
         }
-        else if ((_TASK_APP_STATUS_CONNECTED == lastStatus) ||
-                 (_TASK_APP_STATUS_UNLOCKED == lastStatus))
+        else if _TASK_APP_LAST_FLAG_IS (CONNECTED)
             taskLightAnimTrans(4000, COLOR_OFF, 0);
         else
-            taskLightAnimTrans(0, COLOR_OFF, 0);
-
-        break;
-    }
-    case _TASK_APP_STATUS_CONNECTED:
-    {
-        if (boardIsOpen() == true)
-            _taskAppSetLightOn();
-        else
-            taskLightAnimSin(200, COLOR_BLUE, 0.2f);
-
-        break;
-    }
-    case _TASK_APP_STATUS_UNLOCKED:
-    {
-        if (boardIsOpen() == true)
-            _taskAppSetLightOn();
-        else
-            taskLightAnimTrans(200, COLOR_BLUE, 500);
-
-        break;
+            taskLightAnimTrans(200, COLOR_OFF, 0);
     }
 
-    default:
-        break;
-    }
-}
-
-void _taskAppSetStatus(taskAppStatus_t status)
-{
-    taskAppStatus_t lastStatus = _taskApp.status;
-    _taskApp.status = status;
-    _taskAppManageLightColor(lastStatus);
+    _taskApp.lastFlags = _taskApp.flags;
 }
 
 void _taskAppSetLightOn()
@@ -442,20 +494,31 @@ void _taskAppBleEventErrHandle()
     _taskApp.ticksToRestart = _TASK_APP_RESTART_DELAY_TICK;
     vTaskSetTimeOutState(&_taskApp.timeOutRestart);
 
-    _taskAppSetStatus(_TASK_APP_STATUS_BLE_ERROR);
+    _TASK_APP_FLAG_SET(BLE_ERROR);
+    _taskAppUpdateLight();
 }
 
 void _taskAppBleEventDisconnectedHandle()
 {
     boardPrintf("App: device disconnected.\r\n");
     boardLock();
-    _taskAppSetStatus(_TASK_APP_STATUS_DISCONNECTED);
+
+    _TASK_APP_FLAG_CLEAR(UNLOCKED);
+    _TASK_APP_FLAG_CLEAR(CONNECTED);
+    _taskAppUpdateLight();
 }
 
 void _taskAppBleEventConnectedHandle()
 {
     boardPrintf("App: device connected.\r\n");
-    _taskAppSetStatus(_TASK_APP_STATUS_CONNECTED);
+
+    // Disable exit bond timeout
+    // If we are connected, we are definitely not in bond mode.
+    _taskApp.ticksToExitBond = portMAX_DELAY;
+
+    _TASK_APP_FLAG_SET(CONNECTED);
+    _TASK_APP_FLAG_CLEAR(BONDING);
+    _taskAppUpdateLight();
 }
 
 void _taskAppBoardEventDoorStateHandle()
@@ -467,6 +530,8 @@ void _taskAppBoardEventDoorStateHandle()
         // Update BLE characteristic
         uint8_t state = 1;
         taskBleUpdateAtt(BLE_ATT_DOOR_STATE, &state, 1);
+        _TASK_APP_FLAG_SET(OPENED);
+        _taskAppUpdateLight();
     }
     else
     {
@@ -475,31 +540,53 @@ void _taskAppBoardEventDoorStateHandle()
         // Update BLE characteristic
         uint8_t state = 0;
         taskBleUpdateAtt(BLE_ATT_DOOR_STATE, &state, 1);
+        _TASK_APP_FLAG_CLEAR(OPENED);
+        _taskAppUpdateLight();
     }
-
-    _taskAppManageLightColor(_taskApp.status);
 }
 
 void _taskAppBoardEventButtonBondStateHandle()
 {
     if (boardButtonBondState() == true)
     {
-        // Enable timeout to disable bond if the button is not release during 3s
-        _taskApp.ticksToClearBonded = _TASK_APP_CLEAR_BONDED_DELAY_TICK;
-        vTaskSetTimeOutState(&_taskApp.timeOutClearBonded);
+        if _TASK_APP_FLAG_IS (BONDING)
+        {
+            // Disable exit bond timeout
+            _taskApp.ticksToExitBond = portMAX_DELAY;
+
+            taskBleSetBondMode(false);
+            _TASK_APP_FLAG_CLEAR(BONDING);
+            _taskAppUpdateLight();
+        }
+        else
+        {
+            // Enable timeout to clear all bonded devices if the button is not
+            // release during 3s.
+            _taskApp.ticksToClearBonded = _TASK_APP_CLEAR_BONDED_DELAY_TICK;
+            vTaskSetTimeOutState(&_taskApp.timeOutClearBonded);
+        }
     }
     else
     {
-        if (xTaskCheckForTimeOut(&_taskApp.timeOutClearBonded, &_taskApp.ticksToClearBonded) == pdTRUE)
-            taskBleClearAllPairing();
-        else if (_taskApp.status != _TASK_APP_STATUS_BONDING)
+        if (_taskApp.clearBondedLightFlash == false)
         {
-            _taskAppSetStatus(_TASK_APP_STATUS_BONDING);
-            taskBleBonding(true);
-        }
+            // The bond button is released, and if the timeout is not reached and
+            // the pairing mode is not active, we activate it.
+            if ((_taskApp.ticksToClearBonded != portMAX_DELAY) &&
+                !_TASK_APP_FLAG_IS(BONDING))
+            {
+                taskBleSetBondMode(true);
+                _TASK_APP_FLAG_SET(BONDING);
+                _taskAppUpdateLight();
 
-        // Disable clear bonded device timeout
-        _taskApp.ticksToClearBonded = portMAX_DELAY;
+                // Enable timeout to exit bond mode in 10s
+                _taskApp.ticksToExitBond = _TASK_APP_EXIT_BOND_DELAY_TICK;
+                vTaskSetTimeOutState(&_taskApp.timeOutExitBond);
+            }
+
+            // Disable timeout to clear all bonded devices
+            _taskApp.ticksToClearBonded = portMAX_DELAY;
+        }
     }
 }
 
@@ -579,16 +666,9 @@ void boardSendEventFromISR(boardEvent_t event,
 // Warning: this function is run in task BLE
 void taskBleSendEvent(bleEvent_t event)
 {
-    switch (event)
-    {
-    case BLE_EVENT_ERR:
-        _taskAppBleEventErrHandle();
-        break;
-    case BLE_EVENT_CONNECTED:
-        _taskAppBleEventConnectedHandle();
-        break;
-    case BLE_EVENT_DISCONNECTED:
-        _taskAppBleEventDisconnectedHandle();
-        break;
-    }
+    taskAppEventItem_t eventItem = {
+        .event = _TASK_APP_EVENT_BLE,
+        .bleEvent = event};
+
+    xQueueSend(_taskApp.eventQueue, &eventItem, portMAX_DELAY);
 }

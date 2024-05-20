@@ -73,19 +73,13 @@ void taskBlePauseRadio();
 void taskBleResumeRadio();
 unsigned int taskBleNextRadioTime_ms();
 
-// Function called by the BLE task to send an event to the App task
-// This function is implemented in the App task
-void taskBleSendEvent(bleEvent_t event);
-
-void taskBleBonding(bool enable);
-
+void taskBleSetBondMode(bool enable);
 int taskBleClearAllPairing();
 int taskBleUpdateAtt(bleAtt_t att, const void *buf, size_t nbyte);
 
-
-
-
-
+// Function called by the BLE task to send an event to the App task
+// This function is implemented in the App task
+void taskBleSendEvent(bleEvent_t event);
 
 
 #endif // TASK_BLE_H

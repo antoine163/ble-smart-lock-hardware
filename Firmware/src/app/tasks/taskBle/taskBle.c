@@ -76,10 +76,13 @@
  */
 typedef enum
 {
-    _TASK_BLE_FLAG_DO_ADVERTISING = 0x01,         /**< Perform BLE advertising. */
-    _TASK_BLE_FLAG_DO_SLAVE_SECURITY_REQ = 0x02,  /**< Perform security request as BLE slave. */
-    _TASK_BLE_FLAG_DO_CONFIGURE_WHITELIST = 0x04, /**< Configure BLE whitelist. */
-    _TASK_BLE_FLAG_DO_NOTIFY_READ_REQ = 0x08      /**< Notify or request to read. */
+    _TASK_BLE_FLAG_DO_ADVERTISING = 0x01,           /**< Perform BLE advertising. */
+    _TASK_BLE_FLAG_DO_SLAVE_SECURITY_REQ = 0x02,    /**< Perform security request as BLE slave. */
+    _TASK_BLE_FLAG_DO_CONFIGURE_WHITELIST = 0x04,   /**< Configure BLE whitelist. */
+    _TASK_BLE_FLAG_DO_NOTIFY_READ_REQ = 0x08,       /**< Notify or request to read. */
+    _TASK_BLE_FLAG_BONDING = 0x40,                  /**< Bonding in progress */
+    _TASK_BLE_FLAG_CONNECTED = 0x80,                /**< device connected */
+    
 } taskBleFlag_t;
 
 /**
@@ -126,14 +129,9 @@ typedef struct
     uint16_t connectionHandle;
 
     /**
-     * @brief Flags to run in @ref _taskBleManageFlags()
+     * @brief Flags
      */
     taskBleFlag_t flags;
-
-    /**
-     * @brief Pairing in progress
-     */
-    bool bonding;
 
     /**
      * @brief Service handle of application.
@@ -291,18 +289,15 @@ bool taskBleIsCurrent()
 
 unsigned int taskBleNextRadioTime_ms()
 {
-    // if (xTaskGetCurrentTaskHandle() == NULL)
-    //     return TIMER_SYSTICK_PER_SECOND;
-
     return HAL_VTimerDiff_ms_sysT32(
         _taskBle.nextStateSysTime,
         HAL_VTimerGetCurrentTime_sysT32());
 }
 
-void taskBleBonding(bool enable)
+void taskBleSetBondMode(bool enable)
 {
     xSemaphoreTake(_taskBle.bleStackMutex, portMAX_DELAY);
-    if (_taskBle.bonding == !enable)
+    if (_TASK_BLE_FLAG_IS(BONDING) == !enable)
         _taskBleMakeDiscoverable(enable);
     xSemaphoreGive(_taskBle.bleStackMutex);
 }
@@ -312,23 +307,24 @@ int taskBleClearAllPairing()
     int n = -1;
 
     xSemaphoreTake(_taskBle.bleStackMutex, portMAX_DELAY);
-    if (_taskBle.bleStatus == BLE_STATUS_SUCCESS)
+    _taskBle.bleStatus = aci_gap_clear_security_db();
+    if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
     {
-        _taskBle.bleStatus = aci_gap_clear_security_db();
+        boardPrintf("Ble: clear security data base error: %s\r\n",
+                    _taskBleStatusToStr(_taskBle.bleStatus));
+    }
+    else
+    {
+        n = 0;
+        boardPrintf("Ble: security data base cleared\r\n");
 
-        if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
-        {
-            boardPrintf("Ble: clear security data base error: %s\r\n",
-                        _taskBleStatusToStr(_taskBle.bleStatus));
-        }
-        else
-        {
-            n = 1;
-            boardPrintf("Ble: security data base cleared\r\n");
-        }
+        //Todo au lien de update la Whitelist il faudrai pluto redémar 
+        // ou re init la stack LBE car la mise a jour de la lise ne samble pas
+        // avoir déffée
+        _taskBleUpdateWhitelist();
+        _taskBleMakeDiscoverable(_TASK_BLE_FLAG_IS(BONDING));
     }
     xSemaphoreGive(_taskBle.bleStackMutex);
-
     return n;
 }
 
@@ -343,26 +339,23 @@ int taskBleUpdateAtt(bleAtt_t att, const void *buf, size_t nbyte)
         return 0;
 
     xSemaphoreTake(_taskBle.bleStackMutex, portMAX_DELAY);
-    if (_taskBle.bleStatus == BLE_STATUS_SUCCESS)
-    {
-        _taskBle.bleStatus = aci_gatt_update_char_value_ext(
-            _taskBle.connectionHandle,
-            _taskBle.serviceAppHandle,
-            charHandle,
-            1,     /* Update_Type: (1)GATT_NOTIFICATION */
-            nbyte, /* Char_Length */
-            0,     /* Value_Offset */
-            nbyte, /* Value_Length */
-            (uint8_t *)buf);
+    _taskBle.bleStatus = aci_gatt_update_char_value_ext(
+        _taskBle.connectionHandle,
+        _taskBle.serviceAppHandle,
+        charHandle,
+        1,     /* Update_Type: (1)GATT_NOTIFICATION */
+        nbyte, /* Char_Length */
+        0,     /* Value_Offset */
+        nbyte, /* Value_Length */
+        (uint8_t *)buf);
 
-        if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
-        {
-            boardPrintf("Ble: update char value error: %s\r\n",
-                        _taskBleStatusToStr(_taskBle.bleStatus));
-        }
-        else
-            n = nbyte;
+    if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
+    {
+        boardPrintf("Ble: update char value error: %s\r\n",
+                    _taskBleStatusToStr(_taskBle.bleStatus));
     }
+    else
+        n = nbyte;
     xSemaphoreGive(_taskBle.bleStackMutex);
 
     return n;
@@ -405,9 +398,7 @@ void _taskBleManageFlags()
     if _TASK_BLE_FLAG_IS (DO_ADVERTISING)
     {
         _TASK_BLE_FLAG_CLEAR(DO_ADVERTISING);
-
-        // Make the device discoverable and linkable only to the device whitelist.
-        _taskBleMakeDiscoverable(false);
+        _taskBleMakeDiscoverable(_TASK_BLE_FLAG_IS(BONDING));
     }
 
     if _TASK_BLE_FLAG_IS (DO_NOTIFY_READ_REQ)
@@ -655,8 +646,9 @@ void _taskBleUpdateWhitelist()
         if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
             break;
 
-        _taskBle.bleStatus = aci_gap_add_devices_to_resolving_list(
-            bondedLen, whitelist, 1);
+        if (bondedLen > 0)
+            _taskBle.bleStatus = aci_gap_add_devices_to_resolving_list(
+                bondedLen, whitelist, 1);
     } while (0);
 
     if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
@@ -669,7 +661,21 @@ void _taskBleUpdateWhitelist()
 
 void _taskBleMakeDiscoverable(bool bond)
 {
-    _taskBle.bonding = false;
+    _TASK_BLE_FLAG_CLEAR(BONDING);
+
+    if _TASK_BLE_FLAG_IS (CONNECTED)
+    {
+        // Force disconnection advertising.
+        _taskBle.bleStatus = aci_gap_terminate(
+            _taskBle.connectionHandle,
+            0x13); // Remote User Terminated Connection
+
+        // Next step from event: hci_disconnection_complete_event
+        // Wait disconnection befor tourne in bond mode if enable
+        if (bond == true)
+            _TASK_BLE_FLAG_SET(BONDING);
+        return;
+    }
 
     // Disables advertising.
     _taskBle.bleStatus = aci_gap_set_non_discoverable();
@@ -690,7 +696,7 @@ void _taskBleMakeDiscoverable(bool bond)
             if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
                 break;
 
-            _taskBle.bonding = true;
+            _TASK_BLE_FLAG_SET(BONDING);
             boardPrintf("Ble: discoverable in bond mode.\r\n");
         }
         else

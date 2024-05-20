@@ -50,7 +50,7 @@ Le mode appairage peut être désactivé de plusieurs façons :
  - Automatiquement après une tentative d'appairage réussie ou échouée.
 
 ### Effacement de la liste des appareils appairés
-Pour effacer la liste des appareils appairés, maintenez le bouton *bond* enfoncé pendant plus de 3 secondes. Lorsque vous relâchez le bouton, deux flashs blancs seront émis.
+Pour effacer la liste des appareils appairés, maintenez le bouton *bond* enfoncé pendant plus de 3 secondes. Deux flashs blancs seront émis une fois la liste effacé.
 
 Il est possible de supprimer cette liste avec la commande `bond-clear` via la liaison série.
 

@@ -43,6 +43,7 @@ void hci_disconnection_complete_event(
     BLE_EVENT_PRINT("\tConnection_Handle:0x%x\r\n", Connection_Handle);
     BLE_EVENT_PRINT("\tReason:0x%x\r\n", Reason);
 
+    _TASK_BLE_FLAG_CLEAR(CONNECTED);
     _TASK_BLE_FLAG_SET(DO_ADVERTISING);
     taskBleSendEvent(BLE_EVENT_DISCONNECTED);
 }
@@ -103,6 +104,7 @@ void hci_le_connection_complete_event(
 #endif
 
     _taskBle.connectionHandle = Connection_Handle;
+    _TASK_BLE_FLAG_SET(CONNECTED);
     _TASK_BLE_FLAG_SET(DO_SLAVE_SECURITY_REQ);
     taskBleSendEvent(BLE_EVENT_CONNECTED);
 }
@@ -176,6 +178,7 @@ void hci_le_enhanced_connection_complete_event(
 #endif
 
     _taskBle.connectionHandle = Connection_Handle;
+    _TASK_BLE_FLAG_SET(CONNECTED);
     _TASK_BLE_FLAG_SET(DO_SLAVE_SECURITY_REQ);
     taskBleSendEvent(BLE_EVENT_CONNECTED);
 }
@@ -266,8 +269,10 @@ void aci_gap_pairing_complete_event(
 #endif
 
     // If success and bonding mode
-    if ((Status == 0x00) && (_taskBle.bonding == true))
+    if ((Status == 0x00) && _TASK_BLE_FLAG_IS(BONDING))
         _TASK_BLE_FLAG_SET(DO_CONFIGURE_WHITELIST);
+
+    _TASK_BLE_FLAG_CLEAR(BONDING);
 }
 
 void aci_gatt_attribute_modified_event(
