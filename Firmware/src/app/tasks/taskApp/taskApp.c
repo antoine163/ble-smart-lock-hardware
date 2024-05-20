@@ -30,20 +30,31 @@
  */
 
 // Include ---------------------------------------------------------------------
+#include "BlueNRG1_flash.h"
 #include "taskApp.h"
 #include "tasks/taskLight/taskLight.h"
 #include "tasks/taskBle/taskBle.h"
+
+#include <string.h>
 
 #include <FreeRTOS.h>
 #include <task.h>
 #include <queue.h>
 
 // Define ----------------------------------------------------------------------
-#define _TASK_APP_DEFAULT_BRIGHTNESS_THRESHOLD 50.f                          //!< Default threshold: 50%
+#define _TASK_APP_FLASH_ERASE_GUARD_TIME 25 // 25 ms
+#define _TASK_APP_FLASH_WRITE_GUARD_TIME 1  // 1 ms
+
 #define _TASK_APP_RESTART_DELAY_TICK (1 * 60 * 1000 / portTICK_PERIOD_MS)    //!< Tick to wait before restarting following error detection: 1min
 #define _TASK_APP_OFF_LIGHT_DELAY_TICK (15 * 60 * 1000 / portTICK_PERIOD_MS) //!< Tick to wait before torn off light following disconnection: 15min
 #define _TASK_APP_CLEAR_BONDED_DELAY_TICK (3 * 1000 / portTICK_PERIOD_MS)    //!< Tick to wait before clear all bonded devices: 3s
 #define _TASK_APP_EVENT_QUEUE_LENGTH 8
+
+#define _TASK_APP_DATA_STORAGE_PAGE (N_PAGES - 3)
+
+#define _TASK_APP_CHECK_VERBOSE(verbose) ((verbose == true) || (verbose == false))
+#define _TASK_APP_CHECK_PIN(pin) (pin <= 999999)
+#define _TASK_APP_CHECK_BRIGHTNESS_TH(th) ((th >= 0.) && (th <= 100.))
 
 // Enum ------------------------------------------------------------------------
 typedef enum
@@ -55,10 +66,28 @@ typedef enum
     _TASK_APP_STATUS_UNLOCKED      //!< Indicates that the device is unlocked.
 } taskAppStatus_t;
 
+typedef enum
+{
+    _TASK_APP_EVENT_BOARD,
+    _TASK_APP_EVENT_WRITE_NVM
+} taskAppEvent_t;
+
 // Struct ----------------------------------------------------------------------
 typedef struct
 {
-    boardEvent_t boardEvent;
+    bool verbose;
+    uint32_t pin;
+    float brightnessTh;
+} taskAppNvmData_t;
+
+typedef struct
+{
+    taskAppEvent_t event;
+    union
+    {
+        boardEvent_t boardEvent;
+        taskAppNvmData_t nvmNewData;
+    };
 } taskAppEventItem_t;
 
 typedef struct
@@ -82,13 +111,15 @@ typedef struct
     // Timeout to manage clean all bonded device
     TickType_t ticksToClearBonded;
     TimeOut_t timeOutClearBonded;
-
-    // App conf
-    float brightnessTh;
 } taskApp_t;
 
 // Global variables ------------------------------------------------------------
+NO_INIT_SECTION(const volatile taskAppNvmData_t _taskAppNvmData, ".noinit.app_flash_data");
 static taskApp_t _taskApp = {0};
+static const taskAppNvmData_t _taskAppNvmDefaultData = {
+    .verbose = false,
+    .pin = TASK_BLE_DEFAULT_FIX_PIN,
+    .brightnessTh = 50.f};
 
 // Private prototype functions -------------------------------------------------
 void _taskAppManageLightColor(taskAppStatus_t lastStatus);
@@ -105,6 +136,9 @@ void _taskAppBleEventLockHandle();
 void _taskAppBoardEventDoorStateHandle();
 void _taskAppBoardEventButtonBondStateHandle();
 
+int _taskAppNvmWrite(const taskAppNvmData_t *newData);
+int _taskAppNvmInit();
+
 // Implemented functions -------------------------------------------------------
 void taskAppCodeInit()
 {
@@ -118,8 +152,7 @@ void taskAppCodeInit()
     _taskApp.ticksToOffLight = portMAX_DELAY;
     _taskApp.ticksToClearBonded = portMAX_DELAY;
 
-    // Todo: Lir la valeur à partie de la flash
-    _taskApp.brightnessTh = _TASK_APP_DEFAULT_BRIGHTNESS_THRESHOLD;
+    _taskAppNvmInit();
 }
 
 void taskAppCode(__attribute__((unused)) void *parameters)
@@ -128,10 +161,10 @@ void taskAppCode(__attribute__((unused)) void *parameters)
 
     // Set brightens threshold BLE attribut
     taskBleUpdateAtt(BLE_ATT_BRIGHTNESS_TH,
-                     &_taskApp.brightnessTh,
-                     sizeof(_taskApp.brightnessTh));
+                     (const void *)&_taskAppNvmData.brightnessTh,
+                     sizeof(_taskAppNvmData.brightnessTh));
 
-    // /Door is open ?
+    // Door is open ?
     if (boardIsOpen() == true)
     {
         _taskAppSetLightOn();
@@ -150,15 +183,36 @@ void taskAppCode(__attribute__((unused)) void *parameters)
 
         if (xQueueReceive(_taskApp.eventQueue, &eventItem, ticksToWait) == pdPASS)
         {
-            switch (eventItem.boardEvent)
+            switch (eventItem.event)
             {
-            case BOARD_EVENT_DOOR_STATE:
-                _taskAppBoardEventDoorStateHandle();
-                break;
+            case _TASK_APP_EVENT_BOARD:
+            {
+                switch (eventItem.boardEvent)
+                {
+                case BOARD_EVENT_DOOR_STATE:
+                    _taskAppBoardEventDoorStateHandle();
+                    break;
 
-            case BOARD_EVENT_BUTTON_BOND_STATE:
-                _taskAppBoardEventButtonBondStateHandle();
+                case BOARD_EVENT_BUTTON_BOND_STATE:
+                    _taskAppBoardEventButtonBondStateHandle();
+                    break;
+
+                default:
+                    break;
+                }
                 break;
+            }
+
+            case _TASK_APP_EVENT_WRITE_NVM:
+            {
+                int n = _taskAppNvmWrite(&eventItem.nvmNewData);
+                if (n == 0)
+                    boardPrintf("App: NVM memory written!\r\n");
+                else
+                    boardPrintf("App: NVM memory writ fail!\r\n");
+
+                break;
+            }
 
             default:
                 break;
@@ -182,14 +236,75 @@ void taskAppCode(__attribute__((unused)) void *parameters)
 
 float taskAppGetBrightnessTh()
 {
-    return _taskApp.brightnessTh;
+    return _taskAppNvmData.brightnessTh;
 }
 
-void taskAppSetBrightnessTh(float th)
+int taskAppSetBrightnessTh(float th)
 {
-    _taskApp.brightnessTh = th;
-    // Todo: notifier _taskApp pour sauvegarder la nouvelle valeur dans la flash.
-    // Ou directement sovgarder ici
+    if (!_TASK_APP_CHECK_BRIGHTNESS_TH(th))
+        return -1;
+
+    if (th == _taskAppNvmData.brightnessTh)
+        return 0;
+
+    taskAppEventItem_t eventItem = {.event = _TASK_APP_EVENT_WRITE_NVM};
+    memcpy((void *)&eventItem.nvmNewData,
+           (const void *)&_taskAppNvmData,
+           sizeof(taskAppNvmData_t));
+    eventItem.nvmNewData.brightnessTh = th;
+
+    xQueueSend(_taskApp.eventQueue, &eventItem, portMAX_DELAY);
+
+    if (taskBleIsCurrent() == false)
+        taskBleUpdateAtt(BLE_ATT_BRIGHTNESS_TH, &th, sizeof(th));
+
+    return 0;
+}
+
+uint32_t taskAppGetPin()
+{
+    return _taskAppNvmData.pin;
+}
+
+int taskAppSetPin(uint32_t pin)
+{
+    if (!_TASK_APP_CHECK_PIN(pin))
+        return -1;
+
+    if (pin == _taskAppNvmData.pin)
+        return 0;
+
+    taskAppEventItem_t eventItem = {.event = _TASK_APP_EVENT_WRITE_NVM};
+    memcpy((void *)&eventItem.nvmNewData,
+           (const void *)&_taskAppNvmData,
+           sizeof(taskAppNvmData_t));
+    eventItem.nvmNewData.pin = pin;
+
+    xQueueSend(_taskApp.eventQueue, &eventItem, portMAX_DELAY);
+    return 0;
+}
+
+bool taskAppGetVerbose()
+{
+    return _taskAppNvmData.verbose;
+}
+
+int taskAppSetVerbose(bool verbose)
+{
+    if (!_TASK_APP_CHECK_VERBOSE(verbose))
+        return -1;
+
+    if (verbose == _taskAppNvmData.verbose)
+        return 0;
+
+    taskAppEventItem_t eventItem = {.event = _TASK_APP_EVENT_WRITE_NVM};
+    memcpy((void *)&eventItem.nvmNewData,
+           (const void *)&_taskAppNvmData,
+           sizeof(taskAppNvmData_t));
+    eventItem.nvmNewData.verbose = verbose;
+
+    xQueueSend(_taskApp.eventQueue, &eventItem, portMAX_DELAY);
+    return 0;
 }
 
 void taskAppUnlock()
@@ -298,7 +413,7 @@ void _taskAppSetStatus(taskAppStatus_t status)
 
 void _taskAppSetLightOn()
 {
-    if (boardGetBrightness() <= _taskApp.brightnessTh)
+    if (boardGetBrightness() <= _taskAppNvmData.brightnessTh)
         taskLightAnimTrans(200, COLOR_WHITE_LIGHT, 200);
     else
         taskLightAnimTrans(200, COLOR_YELLOW, 200);
@@ -345,7 +460,7 @@ void _taskAppBoardEventDoorStateHandle()
         boardPrintf("App: door is open.\r\n");
 
         // Update BLE characteristic
-        uint8_t state = 1; 
+        uint8_t state = 1;
         taskBleUpdateAtt(BLE_ATT_DOOR_STATE, &state, 1);
     }
     else
@@ -353,7 +468,7 @@ void _taskAppBoardEventDoorStateHandle()
         boardPrintf("App: door is close.\r\n");
 
         // Update BLE characteristic
-        uint8_t state = 0; 
+        uint8_t state = 0;
         taskBleUpdateAtt(BLE_ATT_DOOR_STATE, &state, 1);
     }
 
@@ -383,11 +498,75 @@ void _taskAppBoardEventButtonBondStateHandle()
     }
 }
 
+// Attention, ensure that the radio is not currently executing and will not be
+// during the write operation before calling this function.
+int _taskAppNvmWrite(const taskAppNvmData_t *newData)
+{
+    if (newData == NULL)
+        return 0;
+
+    // Wait a sufficiently long time before the next radio activity to proceed
+    // with the erase operation.
+    while (taskBleNextRadioTime_ms() < _TASK_APP_FLASH_ERASE_GUARD_TIME)
+        taskYIELD();
+    taskBlePauseRadio();
+
+    // Erase the DATA_STORAGE_PAGE before erase operation
+    FLASH_ErasePage(_TASK_APP_DATA_STORAGE_PAGE);
+
+    // Wait for the end of erase operation
+    while (FLASH_GetFlagStatus(Flash_CMDDONE) != SET)
+        taskYIELD();
+
+    // Can resume the radio at the end of the erase operation.
+    taskBleResumeRadio();
+
+    // Program all words of taskAppNvmData_t
+    for (size_t i = 0; i < sizeof(taskAppNvmData_t); i += N_BYTES_WORD)
+    {
+        // Wait a sufficiently long time before the next radio activity to proceed
+        // with the write operation.
+        while (taskBleNextRadioTime_ms() < _TASK_APP_FLASH_WRITE_GUARD_TIME)
+            taskYIELD();
+        taskBlePauseRadio();
+
+        // Program the word
+        uint32_t word = ((const uint32_t *)newData)[i / N_BYTES_WORD];
+        FLASH_ProgramWord(((uint32_t)&_taskAppNvmData) + i, word);
+
+        // Wait for the end of write operation
+        while (FLASH_GetFlagStatus(Flash_CMDDONE) != SET)
+            taskYIELD();
+
+        // Can resume the radio at the end of the write operation.
+        taskBleResumeRadio();
+    }
+
+    return 0;
+}
+
+int _taskAppNvmInit()
+{
+    // Check possible value
+    if (!_TASK_APP_CHECK_VERBOSE(_taskAppNvmData.verbose) ||
+        !_TASK_APP_CHECK_PIN(_taskAppNvmData.pin) ||
+        !_TASK_APP_CHECK_BRIGHTNESS_TH(_taskAppNvmData.brightnessTh))
+    {
+        if (_taskAppNvmWrite(&_taskAppNvmDefaultData) == 0)
+            boardPrintf("NVM memory written with default values!\r\n");
+        else
+            boardPrintf("NVM memory writ fail with default values!\r\n");
+    }
+
+    return 0;
+}
+
 // Send event implemented fonction
 void boardSendEventFromISR(boardEvent_t event,
                            BaseType_t *pxHigherPriorityTaskWoken)
 {
     taskAppEventItem_t eventItem = {
+        .event = _TASK_APP_EVENT_BOARD,
         .boardEvent = event};
     xQueueSendFromISR(_taskApp.eventQueue, &eventItem, pxHigherPriorityTaskWoken);
 }

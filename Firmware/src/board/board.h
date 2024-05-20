@@ -31,33 +31,30 @@
 
 #include <FreeRTOS.h>
 
-// Define ----------------------------------------------------------------------
-// #define SW_VERSION_MAJOR          0
-// #define SW_VERSION_MINOR          0
-// #define SW_VERSION_BUILD          1
-
-// #define STRINGIFY(x) #x
-// #define SW_VERSION_BUILD_STR(major, minor, build)   "v" STRINGIFY(major) "." STRINGIFY(minor) "." STRINGIFY(build)
-// #define SW_VERSION_STR      SW_VERSION_BUILD_STR(SW_VERSION_MAJOR, SW_VERSION_MINOR, SW_VERSION_BUILD)
-
 // Enum ------------------------------------------------------------------------
+/**
+ * @brief Enum representing different colors.
+ */
 typedef enum
 {
-    COLOR_OFF,
-    COLOR_RED,
-    COLOR_GREEN,
-    COLOR_BLUE,
-    COLOR_YELLOW,
-    COLOR_CYAN,
-    COLOR_MAGENTA,
-    COLOR_WHITE,
-    COLOR_WHITE_LIGHT
+    COLOR_OFF,          /**< No color / off */
+    COLOR_RED,          /**< Red color */
+    COLOR_GREEN,        /**< Green color */
+    COLOR_BLUE,         /**< Blue color */
+    COLOR_YELLOW,       /**< Yellow color */
+    COLOR_CYAN,         /**< Cyan color */
+    COLOR_MAGENTA,      /**< Magenta color */
+    COLOR_WHITE,        /**< White color */
+    COLOR_WHITE_LIGHT   /**< Light white color */
 } color_t;
 
+/**
+ * @brief Enum representing different board events.
+ */
 typedef enum
 {
-    BOARD_EVENT_BUTTON_BOND_STATE,
-    BOARD_EVENT_DOOR_STATE
+    BOARD_EVENT_BUTTON_BOND_STATE,  /**< Event for button bond state */
+    BOARD_EVENT_DOOR_STATE,         /**< Event for door state */
 } boardEvent_t;
 
 // Prototype functions ---------------------------------------------------------

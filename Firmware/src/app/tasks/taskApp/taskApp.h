@@ -42,7 +42,13 @@ void taskAppCodeInit();
 void taskAppCode(void *parameters);
 
 float taskAppGetBrightnessTh();
-void taskAppSetBrightnessTh(float th);
+int taskAppSetBrightnessTh(float th);
+
+uint32_t taskAppGetPin();
+int taskAppSetPin(uint32_t pin);
+
+bool taskAppGetVerbose();
+int taskAppSetVerbose(bool verbose);
 
 void taskAppUnlock();
 void taskAppOpenDoor();

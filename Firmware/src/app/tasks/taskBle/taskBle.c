@@ -57,7 +57,6 @@
 #define _TASK_BLE_BOND_ADV_INTERVAL_MAX_MS 320
 #define _TASK_BLE_ADV_INTERVAL_MIN_MS 600
 #define _TASK_BLE_ADV_INTERVAL_MAX_MS 900
-#define _TASK_BLE_DEFAULT_FIX_PIN 215426
 
 #define _TASK_BLE_EVENT_QUEUE_LENGTH 8
 
@@ -97,6 +96,9 @@ typedef enum
 
 typedef struct
 {
+    // Handle of this task
+    TaskHandle_t taskHandle;
+
     // Event queue
     QueueHandle_t eventQueue;
     StaticQueue_t eventQueueBuffer;
@@ -113,6 +115,9 @@ typedef struct
 
     // Ble stack status
     tBleStatus bleStatus;
+
+    // Time of next ble state
+    uint32_t nextStateSysTime;
 
     // Ble handle
     /**
@@ -240,6 +245,7 @@ void taskBleCodeInit()
 void taskBleCode(__attribute__((unused)) void *parameters)
 {
     taskBleEvent_t event;
+    _taskBle.taskHandle = xTaskGetCurrentTaskHandle();
 
     if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
         taskBleSendEvent(BLE_EVENT_ERR);
@@ -275,6 +281,22 @@ void taskBleCode(__attribute__((unused)) void *parameters)
         }
         xSemaphoreGive(_taskBle.bleStackMutex);
     }
+}
+
+bool taskBleIsCurrent()
+{
+    TaskHandle_t taskHandle = xTaskGetCurrentTaskHandle();
+    return (taskHandle != NULL) && (taskHandle == _taskBle.taskHandle);
+}
+
+unsigned int taskBleNextRadioTime_ms()
+{
+    // if (xTaskGetCurrentTaskHandle() == NULL)
+    //     return TIMER_SYSTICK_PER_SECOND;
+
+    return HAL_VTimerDiff_ms_sysT32(
+        _taskBle.nextStateSysTime,
+        HAL_VTimerGetCurrentTime_sysT32());
 }
 
 void taskBleBonding(bool enable)
@@ -327,10 +349,10 @@ int taskBleUpdateAtt(bleAtt_t att, const void *buf, size_t nbyte)
             _taskBle.connectionHandle,
             _taskBle.serviceAppHandle,
             charHandle,
-            1,      /* Update_Type: (1)GATT_NOTIFICATION */
-            nbyte,  /* Char_Length */
-            0,      /* Value_Offset */
-            nbyte,  /* Value_Length */
+            1,     /* Update_Type: (1)GATT_NOTIFICATION */
+            nbyte, /* Char_Length */
+            0,     /* Value_Offset */
+            nbyte, /* Value_Length */
             (uint8_t *)buf);
 
         if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
@@ -344,6 +366,18 @@ int taskBleUpdateAtt(bleAtt_t att, const void *buf, size_t nbyte)
     xSemaphoreGive(_taskBle.bleStackMutex);
 
     return n;
+}
+
+void taskBlePauseRadio()
+{
+    if (_taskBle.bleStackMutex != NULL)
+        xSemaphoreTake(_taskBle.bleStackMutex, portMAX_DELAY);
+}
+
+void taskBleResumeRadio()
+{
+    if (_taskBle.bleStackMutex != NULL)
+        xSemaphoreGive(_taskBle.bleStackMutex);
 }
 
 void _taskBleManageFlags()
@@ -434,6 +468,11 @@ tBleStatus _taskBleInitDevice()
     if (bleStatus != BLE_STATUS_SUCCESS)
         return bleStatus;
 
+    // Enable the callback end_of_radio_activity_event
+    bleStatus = aci_hal_set_radio_activity_mask(0x00ff);
+    if (bleStatus != BLE_STATUS_SUCCESS)
+        return bleStatus;
+
     // Init Ble: GATT layer
     bleStatus = aci_gatt_init();
     if (bleStatus != BLE_STATUS_SUCCESS)
@@ -474,6 +513,7 @@ tBleStatus _taskBleInitDevice()
         return bleStatus;
 
     // Set the proper security I/O authentication
+    // Todo récupéer le pin depui la flash et gera le changement de pin
     bleStatus = aci_gap_set_authentication_requirement(
         BONDING,
         MITM_PROTECTION_REQUIRED,
@@ -482,7 +522,7 @@ tBleStatus _taskBleInitDevice()
         7,  // Minimum encryption key size
         16, // Maximum encryption key size
         USE_FIXED_PIN_FOR_PAIRING,
-        _TASK_BLE_DEFAULT_FIX_PIN, // Fixed Pin
+        TASK_BLE_DEFAULT_FIX_PIN, // Fixed Pin
         STATIC_RANDOM_ADDR);
     if (bleStatus != BLE_STATUS_SUCCESS)
         return bleStatus;

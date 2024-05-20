@@ -35,6 +35,9 @@
 // Include ---------------------------------------------------------------------
 #include <stddef.h>
 
+// Define ------------------------------------------------------------------------
+#define TASK_BLE_DEFAULT_FIX_PIN 215426
+
 // Enum ------------------------------------------------------------------------
 
 /**
@@ -65,6 +68,10 @@ typedef enum {
 void taskBleCodeInit();
 void taskBleCode(void *parameters);
 
+bool taskBleIsCurrent();
+void taskBlePauseRadio();
+void taskBleResumeRadio();
+unsigned int taskBleNextRadioTime_ms();
 
 // Function called by the BLE task to send an event to the App task
 // This function is implemented in the App task
@@ -74,6 +81,9 @@ void taskBleBonding(bool enable);
 
 int taskBleClearAllPairing();
 int taskBleUpdateAtt(bleAtt_t att, const void *buf, size_t nbyte);
+
+
+
 
 
 

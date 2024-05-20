@@ -324,6 +324,7 @@ void aci_gatt_attribute_modified_event(
     // Commend to set brightness threshold
     else if (Attr_Handle == _taskBle.brightnessThCharAppHandle + 1)
     {
+        taskAppSetBrightnessTh(*((float*)Attr_Data));
     }
 }
 
@@ -339,6 +340,31 @@ void aci_gatt_read_permit_req_event(
 
     _TASK_BLE_FLAG_SET(DO_NOTIFY_READ_REQ);
 }
+
+void aci_hal_end_of_radio_activity_event(
+    __attribute__((unused)) uint8_t Last_State,
+    __attribute__((unused)) uint8_t Next_State,
+    __attribute__((unused)) uint32_t Next_State_SysTime)
+{
+    // BLE_EVENT_PRINT("aci_hal_end_of_radio_activity_event\r\n");
+    // BLE_EVENT_PRINT("\tLast_State:%u\r\n", Last_State);
+    // BLE_EVENT_PRINT("\tNext_State:%u\r\n", Next_State);
+    // BLE_EVENT_PRINT("\tNext_State_SysTime:%u\r\n", Next_State_SysTime);
+
+    // BLE_EVENT_PRINT("\tms:%u\r\n", 
+    //     HAL_VTimerDiff_ms_sysT32(Next_State_SysTime, HAL_VTimerGetCurrentTime_sysT32()));
+
+    _taskBle.nextStateSysTime = Next_State_SysTime;
+}
+
+void hci_hardware_error_event(
+    __attribute__((unused)) uint8_t Hardware_Code)
+{
+    BLE_EVENT_PRINT("hci_hardware_error_event\r\n");
+    taskBleSendEvent(BLE_EVENT_ERR);
+}
+
+
 
 void hci_encryption_change_event(
     __attribute__((unused)) uint8_t Status,
@@ -360,12 +386,6 @@ void hci_read_remote_version_information_complete_event(
     __attribute__((unused)) uint16_t Subversion)
 {
     BLE_EVENT_PRINT("hci_read_remote_version_information_complete_event\r\n");
-}
-
-void hci_hardware_error_event(
-    __attribute__((unused)) uint8_t Hardware_Code)
-{
-    BLE_EVENT_PRINT("hci_hardware_error_event\r\n");
 }
 
 void hci_number_of_completed_packets_event(
@@ -732,14 +752,6 @@ void aci_l2cap_command_reject_event(
     __attribute__((unused)) uint8_t Data[])
 {
     BLE_EVENT_PRINT("aci_l2cap_command_reject_event\r\n");
-}
-
-void aci_hal_end_of_radio_activity_event(
-    __attribute__((unused)) uint8_t Last_State,
-    __attribute__((unused)) uint8_t Next_State,
-    __attribute__((unused)) uint32_t Next_State_SysTime)
-{
-    BLE_EVENT_PRINT("aci_hal_end_of_radio_activity_event\r\n");
 }
 
 void aci_hal_scan_req_report_event(
