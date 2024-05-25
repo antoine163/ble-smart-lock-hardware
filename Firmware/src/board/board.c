@@ -116,6 +116,7 @@ int boardDgb(char const *format, ...)
     if (_board.verbose == true)
     {
         va_list ap;
+        va_start(ap, format);
         n = _boardVprintf(format, ap);
         va_end(ap);
     }
@@ -140,10 +141,9 @@ int boardPrintf(char const *format, ...)
 
 int _boardVprintf(char const *format, va_list ap)
 {
+    xSemaphoreTake(_board.serialMutex, portMAX_DELAY);
     static char str[256];
     int n = vsnprintf(str, sizeof(str), format, ap);
-
-    xSemaphoreTake(_board.serialMutex, portMAX_DELAY);
     n = uart_write(&_board.serial, str, n);
     xSemaphoreGive(_board.serialMutex);
 
