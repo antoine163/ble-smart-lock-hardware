@@ -46,8 +46,8 @@
 #include <math.h>
 
 // Define ----------------------------------------------------------------------
-#define _BOARD_UART_RX_FIFO_SIZE       32
-#define _BOARD_UART_TX_FIFO_SIZE       1024
+#define _BOARD_UART_RX_FIFO_SIZE 32
+#define _BOARD_UART_TX_FIFO_SIZE 1024
 
 // Struct ----------------------------------------------------------------------
 typedef struct
@@ -69,6 +69,9 @@ typedef struct
 
     // Lock
     bool loked;
+
+    // Enable debugging messages
+    bool verbose;
 } board_t;
 
 // Prototype static functions --------------------------------------------------
@@ -77,13 +80,15 @@ static void _boardInitUart();
 static void _boardInitPwm();
 static void _boardInitAdc();
 static void _boardEnableIo(bool enable);
+static int _boardVprintf(char const *format, va_list ap);
 
 // Global variables ------------------------------------------------------------
 board_t _board = {
     .serialMutex = NULL,
     .lightColor = COLOR_OFF,
     .lightDc = 0.,
-    .loked = true};
+    .loked = true,
+    .verbose = true};
 
 // Implemented functions -------------------------------------------------------
 
@@ -105,14 +110,38 @@ void boardInit()
     _boardInitAdc();
 }
 
+int boardDgb(char const *format, ...)
+{
+    int n = 0;
+    if (_board.verbose == true)
+    {
+        va_list ap;
+        n = _boardVprintf(format, ap);
+        va_end(ap);
+    }
+
+    return n;
+}
+
+void boardDgbEnable(bool enable)
+{
+    _board.verbose = enable;
+}
+
 int boardPrintf(char const *format, ...)
 {
     va_list ap;
-    static char str[256];
-
     va_start(ap, format);
-    int n = vsnprintf(str, sizeof(str), format, ap);
+    int n = _boardVprintf(format, ap);
     va_end(ap);
+
+    return n;
+}
+
+int _boardVprintf(char const *format, va_list ap)
+{
+    static char str[256];
+    int n = vsnprintf(str, sizeof(str), format, ap);
 
     xSemaphoreTake(_board.serialMutex, portMAX_DELAY);
     n = uart_write(&_board.serial, str, n);

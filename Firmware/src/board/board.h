@@ -59,6 +59,8 @@ typedef enum
 
 // Prototype functions ---------------------------------------------------------
 void boardInit();
+int boardDgb(char const *format, ...);
+void boardDgbEnable(bool enable);
 int boardPrintf(char const *format, ...);
 
 void boardSetLightColor(color_t color);

@@ -256,9 +256,9 @@ void taskAppCode(__attribute__((unused)) void *parameters)
             {
                 int n = _taskAppNvmWrite(&eventItem.nvmNewData);
                 if (n == 0)
-                    boardPrintf("App: NVM memory written!\r\n");
+                    boardDgb("App: NVM memory written!\r\n");
                 else
-                    boardPrintf("App: NVM memory writ fail!\r\n");
+                    boardDgb("App: NVM memory writ fail!\r\n");
 
                 break;
             }
@@ -300,7 +300,7 @@ void taskAppCode(__attribute__((unused)) void *parameters)
                 _taskApp.clearBondedLightFlash = false;
 
                 // Restart following a whitelist cleanup.
-                boardPrintf("App: Rebooting ...\r\n");
+                boardDgb("App: Rebooting ...\r\n");
                 vTaskDelay(1); // wait to print message
                 NVIC_SystemReset();
             }
@@ -396,25 +396,25 @@ void taskAppUnlock()
 {
     if _TASK_APP_FLAG_IS (CONNECTED)
     {
-        boardPrintf("App: unlock the lock.\r\n");
+        boardDgb("App: unlock the lock.\r\n");
         boardUnlock();
 
         _TASK_APP_FLAG_SET(UNLOCKED);
         _taskAppUpdateLight();
     }
     else
-        boardPrintf("App: Can't unlock if unconnected device.\r\n");
+        boardDgb("App: Can't unlock if unconnected device.\r\n");
 }
 
 void taskAppOpenDoor()
 {
     if (boardIsLocked() == true)
     {
-        boardPrintf("App: the lock is loked, can't open.\r\n");
+        boardDgb("App: the lock is loked, can't open.\r\n");
         return;
     }
 
-    boardPrintf("App: open the foor.\r\n");
+    boardDgb("App: open the foor.\r\n");
     boardOpen();
 }
 
@@ -487,7 +487,7 @@ void _taskAppSetLightOn()
 // Handle event implemented fonction
 void _taskAppBleEventErrHandle()
 {
-    boardPrintf("App: ble radio error !\r\n");
+    boardDgb("App: ble radio error !\r\n");
     boardLedOn();
 
     // Init time to restart into 1min
@@ -500,7 +500,7 @@ void _taskAppBleEventErrHandle()
 
 void _taskAppBleEventDisconnectedHandle()
 {
-    boardPrintf("App: device disconnected.\r\n");
+    boardDgb("App: device disconnected.\r\n");
     boardLock();
 
     _TASK_APP_FLAG_CLEAR(UNLOCKED);
@@ -510,7 +510,7 @@ void _taskAppBleEventDisconnectedHandle()
 
 void _taskAppBleEventConnectedHandle()
 {
-    boardPrintf("App: device connected.\r\n");
+    boardDgb("App: device connected.\r\n");
 
     // Disable exit bond timeout
     // If we are connected, we are definitely not in bond mode.
@@ -525,7 +525,7 @@ void _taskAppBoardEventDoorStateHandle()
 {
     if (boardIsOpen() == true)
     {
-        boardPrintf("App: door is open.\r\n");
+        boardDgb("App: door is open.\r\n");
 
         // Update BLE characteristic
         uint8_t state = 1;
@@ -535,7 +535,7 @@ void _taskAppBoardEventDoorStateHandle()
     }
     else
     {
-        boardPrintf("App: door is close.\r\n");
+        boardDgb("App: door is close.\r\n");
 
         // Update BLE characteristic
         uint8_t state = 0;
@@ -645,9 +645,9 @@ int _taskAppNvmInit()
         !_TASK_APP_CHECK_BRIGHTNESS_TH(_taskAppNvmData.brightnessTh))
     {
         if (_taskAppNvmWrite(&_taskAppNvmDefaultData) == 0)
-            boardPrintf("NVM memory written with default values!\r\n");
+            boardDgb("App: NVM memory written with default values!\r\n");
         else
-            boardPrintf("NVM memory writ fail with default values!\r\n");
+            boardDgb("App NVM memory writ fail with default values!\r\n");
     }
 
     return 0;

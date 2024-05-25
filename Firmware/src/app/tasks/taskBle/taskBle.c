@@ -216,14 +216,14 @@ void taskBleCodeInit()
     // Init Ble
     _taskBle.bleStatus = BlueNRG_Stack_Initialization(&BlueNRG_Stack_Init_params);
     if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
-        boardPrintf("Ble: stack init: %s\r\n",
+        boardDgb("Ble: stack init: %s\r\n",
                     _taskBleStatusToStr(_taskBle.bleStatus));
 
     if (_taskBle.bleStatus == BLE_STATUS_SUCCESS)
     {
         _taskBle.bleStatus = _taskBleInitDevice();
         if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
-            boardPrintf("Ble: init device error: %s\r\n",
+            boardDgb("Ble: init device error: %s\r\n",
                         _taskBleStatusToStr(_taskBle.bleStatus));
     }
 
@@ -231,12 +231,12 @@ void taskBleCodeInit()
     {
         _taskBle.bleStatus = _taskBleAddServices();
         if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
-            boardPrintf("Ble: add service error: %s\r\n",
+            boardDgb("Ble: add service error: %s\r\n",
                         _taskBleStatusToStr(_taskBle.bleStatus));
     }
 
     if (_taskBle.bleStatus == BLE_STATUS_SUCCESS)
-        boardPrintf("Ble: initialised with success\r\n");
+        boardDgb("Ble: initialised with success\r\n");
 }
 
 // Implemented functions -------------------------------------------------------
@@ -310,13 +310,13 @@ int taskBleClearAllPairing()
     _taskBle.bleStatus = aci_gap_clear_security_db();
     if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
     {
-        boardPrintf("Ble: clear security data base error: %s\r\n",
+        boardDgb("Ble: clear security data base error: %s\r\n",
                     _taskBleStatusToStr(_taskBle.bleStatus));
     }
     else
     {
         n = 0;
-        boardPrintf("Ble: security data base cleared\r\n");
+        boardDgb("Ble: security data base cleared\r\n");
 
         _taskBleUpdateWhitelist();
         _taskBleMakeDiscoverable(_TASK_BLE_FLAG_IS(BONDING));
@@ -348,7 +348,7 @@ int taskBleUpdateAtt(bleAtt_t att, const void *buf, size_t nbyte)
 
     if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
     {
-        boardPrintf("Ble: update char value error: %s\r\n",
+        boardDgb("Ble: update char value error: %s\r\n",
                     _taskBleStatusToStr(_taskBle.bleStatus));
     }
     else
@@ -380,7 +380,7 @@ void _taskBleManageFlags()
             _taskBle.connectionHandle);
         if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
         {
-            boardPrintf("Ble: slave security request error: %s\r\n",
+            boardDgb("Ble: slave security request error: %s\r\n",
                         _taskBleStatusToStr(_taskBle.bleStatus));
             taskBleSendEvent(BLE_EVENT_ERR);
         }
@@ -650,7 +650,7 @@ void _taskBleUpdateWhitelist()
 
     if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
     {
-        boardPrintf("Ble: update whitelist error: %s\r\n",
+        boardDgb("Ble: update whitelist error: %s\r\n",
                     _taskBleStatusToStr(_taskBle.bleStatus));
         taskBleSendEvent(BLE_EVENT_ERR);
     }
@@ -694,7 +694,7 @@ void _taskBleMakeDiscoverable(bool bond)
                 break;
 
             _TASK_BLE_FLAG_SET(BONDING);
-            boardPrintf("Ble: discoverable in bond mode.\r\n");
+            boardDgb("Ble: discoverable in bond mode.\r\n");
         }
         else
         {
@@ -706,13 +706,13 @@ void _taskBleMakeDiscoverable(bool bond)
             if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
                 break;
 
-            boardPrintf("Ble: discoverable.\r\n");
+            boardDgb("Ble: discoverable.\r\n");
         }
     } while (0);
 
     if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
     {
-        boardPrintf("Ble: make discoverable error: %s\r\n",
+        boardDgb("Ble: make discoverable error: %s\r\n",
                     _taskBleStatusToStr(_taskBle.bleStatus));
         taskBleSendEvent(BLE_EVENT_ERR);
     }

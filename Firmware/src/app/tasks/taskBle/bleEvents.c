@@ -26,7 +26,7 @@
 #define BLE_EVENT_DEBUG 1
 
 #if BLE_EVENT_DEBUG == 1
-#define BLE_EVENT_PRINT(...) boardPrintf(__VA_ARGS__)
+#define BLE_EVENT_PRINT(...) boardDgb(__VA_ARGS__)
 #else
 #define BLE_EVENT_PRINT(...)
 #endif

@@ -36,6 +36,7 @@
 #include "taskBle/taskBle.h"
 #include "taskApp/taskApp.h"
 #include "taskLight/taskLight.h"
+#include "taskTerm/taskTerm.h"
 
 // Define ----------------------------------------------------------------------
 
@@ -54,10 +55,11 @@
  * @p parameters -> pvParametersde
  * @p priority -> uxPriority
  */
-#define TASKS_STATIC_LIST                                                                      \
-    STATIC_TASK(taskBleCode, "Ble", configMINIMAL_STACK_SIZE * 4, NULL, tskIDLE_PRIORITY + 3) \
-    STATIC_TASK(taskAppCode, "App", configMINIMAL_STACK_SIZE * 2, NULL, tskIDLE_PRIORITY + 2)  \
-    STATIC_TASK(taskLightCode, "Light", configMINIMAL_STACK_SIZE * 2, NULL, tskIDLE_PRIORITY + 1)
+#define TASKS_STATIC_LIST                                                                         \
+    STATIC_TASK(taskAppCode, "App", configMINIMAL_STACK_SIZE * 2, NULL, tskIDLE_PRIORITY + 2)     \
+    STATIC_TASK(taskTermCode, "Term", configMINIMAL_STACK_SIZE * 2, NULL, tskIDLE_PRIORITY + 1)   \
+    STATIC_TASK(taskLightCode, "Light", configMINIMAL_STACK_SIZE * 2, NULL, tskIDLE_PRIORITY + 1) \
+    STATIC_TASK(taskBleCode, "Ble", configMINIMAL_STACK_SIZE * 4, NULL, tskIDLE_PRIORITY + 3)
 
 // Prototype functions ---------------------------------------------------------
 
