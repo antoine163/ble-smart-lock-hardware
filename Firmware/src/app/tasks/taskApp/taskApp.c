@@ -59,6 +59,8 @@
 
 #define _TASK_APP_MIN(v1, v2) (v1 < v2) ? v1 : v2
 
+#define _TASK_APP_DEFAULT_FIX_PIN 215426
+
 // Flag tools
 #define _TASK_APP_FLAG_SET(name_flag) \
     _taskApp.flags |= _TASK_APP_FLAG_##name_flag;
@@ -154,7 +156,7 @@ NO_INIT_SECTION(const volatile taskAppNvmData_t _taskAppNvmData, ".noinit.app_fl
 static taskApp_t _taskApp = {0};
 static const taskAppNvmData_t _taskAppNvmDefaultData = {
     .verbose = false,
-    .pin = TASK_BLE_DEFAULT_FIX_PIN,
+    .pin = _TASK_APP_DEFAULT_FIX_PIN,
     .brightnessTh = 50.f};
 
 // Private prototype functions -------------------------------------------------
@@ -418,10 +420,6 @@ void taskAppOpenDoor()
 
 void _taskAppUpdateLight()
 {
-    // Todo a anlever ou pas ?
-    // if (_taskApp.lastFlags == _taskApp.flags)
-    //     return;
-
     // Disable turn off the light in 15 minutes if there are no new events.
     _taskApp.ticksToOffLight = portMAX_DELAY;
 

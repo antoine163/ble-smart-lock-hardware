@@ -510,7 +510,7 @@ tBleStatus _taskBleInitDevice()
         7,  // Minimum encryption key size
         16, // Maximum encryption key size
         USE_FIXED_PIN_FOR_PAIRING,
-        TASK_BLE_DEFAULT_FIX_PIN, // Fixed Pin
+        taskAppGetPin(), // Fixed Pin
         STATIC_RANDOM_ADDR);
     if (bleStatus != BLE_STATUS_SUCCESS)
         return bleStatus;
