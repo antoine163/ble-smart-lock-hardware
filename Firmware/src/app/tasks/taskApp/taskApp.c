@@ -297,8 +297,10 @@ void taskAppCode(__attribute__((unused)) void *parameters)
             {
                 _taskApp.clearBondedLightFlash = false;
 
-                // Restore stats of light
-                _taskAppUpdateLight();
+                // Restart following a whitelist cleanup.
+                boardPrintf("App: Rebooting ...\r\n");
+                vTaskDelay(1); // wait to print message
+                NVIC_SystemReset();
             }
         }
 
@@ -579,12 +581,12 @@ void _taskAppBoardEventButtonBondStateHandle()
                 _TASK_APP_FLAG_SET(BONDING);
                 _taskAppUpdateLight();
 
-                // Enable timeout to exit bond mode in 10s
+                // Enable timeout to exit bond mode in 10s.
                 _taskApp.ticksToExitBond = _TASK_APP_EXIT_BOND_DELAY_TICK;
                 vTaskSetTimeOutState(&_taskApp.timeOutExitBond);
             }
 
-            // Disable timeout to clear all bonded devices
+            // Disable timeout to clear all bonded devices.
             _taskApp.ticksToClearBonded = portMAX_DELAY;
         }
     }

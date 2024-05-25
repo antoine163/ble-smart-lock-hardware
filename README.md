@@ -40,7 +40,7 @@ Pour passer la serrure en mode appairage, appuyez brièvement sur le bouton bond
 
 La lumière d'ambiance devient vert clignotante sinusoïdale et la serrure devient visible par les appareils BLE à proximité.
 
-Le mot de passe par défaut est 215426. Il peut être changé via la liaison série avec la commande `pin new_pin`, où *new_pin* doit être compris entre 0 et 999999.
+Le PIN par défaut est 215426. Il peut être changé via la liaison série avec la commande `pin new_pin`, où *new_pin* doit être compris entre 0 et 999999.
 
 
 ### Fermeture du mode appairage

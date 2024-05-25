@@ -76,13 +76,13 @@
  */
 typedef enum
 {
-    _TASK_BLE_FLAG_DO_ADVERTISING = 0x01,           /**< Perform BLE advertising. */
-    _TASK_BLE_FLAG_DO_SLAVE_SECURITY_REQ = 0x02,    /**< Perform security request as BLE slave. */
-    _TASK_BLE_FLAG_DO_CONFIGURE_WHITELIST = 0x04,   /**< Configure BLE whitelist. */
-    _TASK_BLE_FLAG_DO_NOTIFY_READ_REQ = 0x08,       /**< Notify or request to read. */
-    _TASK_BLE_FLAG_BONDING = 0x40,                  /**< Bonding in progress */
-    _TASK_BLE_FLAG_CONNECTED = 0x80,                /**< device connected */
-    
+    _TASK_BLE_FLAG_DO_ADVERTISING = 0x01,         /**< Perform BLE advertising. */
+    _TASK_BLE_FLAG_DO_SLAVE_SECURITY_REQ = 0x02,  /**< Perform security request as BLE slave. */
+    _TASK_BLE_FLAG_DO_CONFIGURE_WHITELIST = 0x04, /**< Configure BLE whitelist. */
+    _TASK_BLE_FLAG_DO_NOTIFY_READ_REQ = 0x08,     /**< Notify or request to read. */
+    _TASK_BLE_FLAG_BONDING = 0x40,                /**< Bonding in progress */
+    _TASK_BLE_FLAG_CONNECTED = 0x80,              /**< device connected */
+
 } taskBleFlag_t;
 
 /**
@@ -318,9 +318,6 @@ int taskBleClearAllPairing()
         n = 0;
         boardPrintf("Ble: security data base cleared\r\n");
 
-        //Todo au lien de update la Whitelist il faudrai pluto redémar 
-        // ou re init la stack LBE car la mise a jour de la lise ne samble pas
-        // avoir déffée
         _taskBleUpdateWhitelist();
         _taskBleMakeDiscoverable(_TASK_BLE_FLAG_IS(BONDING));
     }
