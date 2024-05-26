@@ -75,30 +75,14 @@ void hci_le_connection_complete_event(
     char *strMaster_Clock_Accuracy = "";
     switch (Master_Clock_Accuracy)
     {
-    case 0x00:
-        strMaster_Clock_Accuracy = "500 ppm";
-        break;
-    case 0x01:
-        strMaster_Clock_Accuracy = "250 ppm";
-        break;
-    case 0x02:
-        strMaster_Clock_Accuracy = "150 ppm";
-        break;
-    case 0x03:
-        strMaster_Clock_Accuracy = "100 ppm";
-        break;
-    case 0x04:
-        strMaster_Clock_Accuracy = "75 ppm";
-        break;
-    case 0x05:
-        strMaster_Clock_Accuracy = "50 ppm";
-        break;
-    case 0x06:
-        strMaster_Clock_Accuracy = "30 ppm";
-        break;
-    case 0x07:
-        strMaster_Clock_Accuracy = "20 ppm";
-        break;
+    case 0x00: strMaster_Clock_Accuracy = "500 ppm"; break;
+    case 0x01: strMaster_Clock_Accuracy = "250 ppm"; break;
+    case 0x02: strMaster_Clock_Accuracy = "150 ppm"; break;
+    case 0x03: strMaster_Clock_Accuracy = "100 ppm"; break;
+    case 0x04: strMaster_Clock_Accuracy = "75 ppm"; break;
+    case 0x05: strMaster_Clock_Accuracy = "50 ppm"; break;
+    case 0x06: strMaster_Clock_Accuracy = "30 ppm"; break;
+    case 0x07: strMaster_Clock_Accuracy = "20 ppm"; break;
     }
     BLE_EVENT_PRINT("\tMaster_Clock_Accuracy:%s\r\n", strMaster_Clock_Accuracy);
 #endif
@@ -149,30 +133,14 @@ void hci_le_enhanced_connection_complete_event(
     char *strMaster_Clock_Accuracy = "";
     switch (Master_Clock_Accuracy)
     {
-    case 0x00:
-        strMaster_Clock_Accuracy = "500 ppm";
-        break;
-    case 0x01:
-        strMaster_Clock_Accuracy = "250 ppm";
-        break;
-    case 0x02:
-        strMaster_Clock_Accuracy = "150 ppm";
-        break;
-    case 0x03:
-        strMaster_Clock_Accuracy = "100 ppm";
-        break;
-    case 0x04:
-        strMaster_Clock_Accuracy = "75 ppm";
-        break;
-    case 0x05:
-        strMaster_Clock_Accuracy = "50 ppm";
-        break;
-    case 0x06:
-        strMaster_Clock_Accuracy = "30 ppm";
-        break;
-    case 0x07:
-        strMaster_Clock_Accuracy = "20 ppm";
-        break;
+    case 0x00: strMaster_Clock_Accuracy = "500 ppm"; break;
+    case 0x01: strMaster_Clock_Accuracy = "250 ppm"; break;
+    case 0x02: strMaster_Clock_Accuracy = "150 ppm"; break;
+    case 0x03: strMaster_Clock_Accuracy = "100 ppm"; break;
+    case 0x04: strMaster_Clock_Accuracy = "75 ppm"; break;
+    case 0x05: strMaster_Clock_Accuracy = "50 ppm"; break;
+    case 0x06: strMaster_Clock_Accuracy = "30 ppm"; break;
+    case 0x07: strMaster_Clock_Accuracy = "20 ppm"; break;
     }
     BLE_EVENT_PRINT("\tMaster_Clock_Accuracy:%s\r\n", strMaster_Clock_Accuracy);
 #endif
@@ -197,24 +165,12 @@ void aci_gap_pairing_complete_event(
 
     switch (Status)
     {
-    case 0x00:
-        strStatus = "Success";
-        break;
-    case 0x01:
-        strStatus = "Timeout";
-        break;
-    case 0x02:
-        strStatus = "Pairing Failed";
-        break;
-    case 0x03:
-        strStatus = "Encryption failed, LTK missing on local device";
-        break;
-    case 0x04:
-        strStatus = "Encryption failed, LTK missing on peer device";
-        break;
-    case 0x05:
-        strStatus = "Encryption not supported by remote device";
-        break;
+    case 0x00: strStatus = "Success"; break;
+    case 0x01: strStatus = "Timeout"; break;
+    case 0x02: strStatus = "Pairing Failed"; break;
+    case 0x03: strStatus = "Encryption failed, LTK missing on local device"; break;
+    case 0x04: strStatus = "Encryption failed, LTK missing on peer device"; break;
+    case 0x05: strStatus = "Encryption not supported by remote device"; break;
     }
 
     BLE_EVENT_PRINT("\t Status:%s\r\n", strStatus);
@@ -223,45 +179,19 @@ void aci_gap_pairing_complete_event(
     {
         switch (Reason)
         {
-        case 0x00:
-            strReason = "";
-            break;
-        case 0x01:
-            strReason = "PASSKEY_ENTRY_FAILED";
-            break;
-        case 0x02:
-            strReason = "OOB_NOT_AVAILABLE";
-            break;
-        case 0x03:
-            strReason = "AUTH_REQ_CANNOT_BE_MET";
-            break;
-        case 0x04:
-            strReason = "CONFIRM_VALUE_FAILED";
-            break;
-        case 0x05:
-            strReason = "PAIRING_NOT_SUPPORTED";
-            break;
-        case 0x06:
-            strReason = "INSUFF_ENCRYPTION_KEY_SIZE";
-            break;
-        case 0x07:
-            strReason = "CMD_NOT_SUPPORTED";
-            break;
-        case 0x08:
-            strReason = "UNSPECIFIED_REASON";
-            break;
-        case 0x09:
-            strReason = "VERY_EARLY_NEXT_ATTEMPT";
-            break;
-        case 0x0A:
-            strReason = "SM_INVALID_PARAMS";
-            break;
-        case 0x0B:
-            strReason = "SMP_SC_DHKEY_CHECK_FAILED";
-            break;
-        case 0x0C:
-            strReason = "SMP_SC_NUMCOMPARISON_FAILED";
-            break;
+        case 0x00: strReason = ""; break;
+        case 0x01: strReason = "PASSKEY_ENTRY_FAILED"; break;
+        case 0x02: strReason = "OOB_NOT_AVAILABLE"; break;
+        case 0x03: strReason = "AUTH_REQ_CANNOT_BE_MET"; break;
+        case 0x04: strReason = "CONFIRM_VALUE_FAILED"; break;
+        case 0x05: strReason = "PAIRING_NOT_SUPPORTED"; break;
+        case 0x06: strReason = "INSUFF_ENCRYPTION_KEY_SIZE"; break;
+        case 0x07: strReason = "CMD_NOT_SUPPORTED"; break;
+        case 0x08: strReason = "UNSPECIFIED_REASON"; break;
+        case 0x09: strReason = "VERY_EARLY_NEXT_ATTEMPT"; break;
+        case 0x0A: strReason = "SM_INVALID_PARAMS"; break;
+        case 0x0B: strReason = "SMP_SC_DHKEY_CHECK_FAILED"; break;
+        case 0x0C: strReason = "SMP_SC_NUMCOMPARISON_FAILED"; break;
         }
 
         BLE_EVENT_PRINT("\t Reason:%s\r\n", strReason);
@@ -329,7 +259,7 @@ void aci_gatt_attribute_modified_event(
     // Commend to set brightness threshold
     else if (Attr_Handle == _taskBle.brightnessThCharAppHandle + 1)
     {
-        taskAppSetBrightnessTh(*((float*)Attr_Data));
+        taskAppSetBrightnessTh(*((float *)Attr_Data));
     }
 }
 
@@ -356,7 +286,7 @@ void aci_hal_end_of_radio_activity_event(
     // BLE_EVENT_PRINT("\tNext_State:%u\r\n", Next_State);
     // BLE_EVENT_PRINT("\tNext_State_SysTime:%u\r\n", Next_State_SysTime);
 
-    // BLE_EVENT_PRINT("\tms:%u\r\n", 
+    // BLE_EVENT_PRINT("\tms:%u\r\n",
     //     HAL_VTimerDiff_ms_sysT32(Next_State_SysTime, HAL_VTimerGetCurrentTime_sysT32()));
 
     _taskBle.nextStateSysTime = Next_State_SysTime;
@@ -368,8 +298,6 @@ void hci_hardware_error_event(
     BLE_EVENT_PRINT("hci_hardware_error_event\r\n");
     taskBleSendEvent(BLE_EVENT_ERR);
 }
-
-
 
 void hci_encryption_change_event(
     __attribute__((unused)) uint8_t Status,

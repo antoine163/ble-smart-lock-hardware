@@ -36,6 +36,7 @@
 #define BLE_CONFIG_H
 
 #include "bluenrg1_stack.h"
+#include "bluenrg_x_device.h"
 #include "stack_user_cfg.h"
 
 /* Default number of link */
@@ -67,7 +68,7 @@
 
 /* Set supported max value for attribute size: it is the biggest attribute size enabled by the application. */
 #define USER_MAX_ATT_SIZE (4)
-#define APP_MAX_ATT_SIZE MAX_CHAR_LEN(OTA_MAX_ATT_SIZE, USER_MAX_ATT_SIZE)
+#define APP_MAX_ATT_SIZE  MAX_CHAR_LEN(OTA_MAX_ATT_SIZE, USER_MAX_ATT_SIZE)
 
 /* Number of links needed for "Ble Smart Lock".
  * Only 1 the default
@@ -146,7 +147,7 @@ NO_INIT_SECTION(uint8_t stacklib_stored_device_id_data[56], ".noinit.stacklib_st
 #define MASTER_SLEEP_CLOCK_ACCURACY (MASTER_SCA_500ppm)
 #else
 /* Sleep clock accuracy in Slave mode */
-#define SLAVE_SLEEP_CLOCK_ACCURACY (100)
+#define SLAVE_SLEEP_CLOCK_ACCURACY  (100)
 /* Sleep clock accuracy in Master mode */
 #define MASTER_SLEEP_CLOCK_ACCURACY (MASTER_SCA_100ppm)
 #endif

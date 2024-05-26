@@ -97,48 +97,27 @@ int uart_config(uart_t *dev,
 
     switch (databit)
     {
-    case UART_DATA_5BITS:
-        uartConf.UART_WordLengthTransmit = UART_WordLength_5b;
-        break;
-    case UART_DATA_6BITS:
-        uartConf.UART_WordLengthTransmit = UART_WordLength_6b;
-        break;
-    case UART_DATA_7BITS:
-        uartConf.UART_WordLengthTransmit = UART_WordLength_7b;
-        break;
-    case UART_DATA_8BITS:
-        uartConf.UART_WordLengthTransmit = UART_WordLength_8b;
-        break;
-    default:
-        return -1;
+    case UART_DATA_5BITS: uartConf.UART_WordLengthTransmit = UART_WordLength_5b; break;
+    case UART_DATA_6BITS: uartConf.UART_WordLengthTransmit = UART_WordLength_6b; break;
+    case UART_DATA_7BITS: uartConf.UART_WordLengthTransmit = UART_WordLength_7b; break;
+    case UART_DATA_8BITS: uartConf.UART_WordLengthTransmit = UART_WordLength_8b; break;
+    default:              return -1;
     }
     uartConf.UART_WordLengthReceive = uartConf.UART_WordLengthTransmit;
 
     switch (parity)
     {
-    case UART_PARITY_NO:
-        uartConf.UART_Parity = UART_Parity_No;
-        break;
-    case UART_PARITY_ODD:
-        uartConf.UART_Parity = UART_Parity_Odd;
-        break;
-    case UART_PARITY_EVEN:
-        uartConf.UART_Parity = UART_Parity_Even;
-        break;
-    default:
-        return -1;
+    case UART_PARITY_NO:   uartConf.UART_Parity = UART_Parity_No; break;
+    case UART_PARITY_ODD:  uartConf.UART_Parity = UART_Parity_Odd; break;
+    case UART_PARITY_EVEN: uartConf.UART_Parity = UART_Parity_Even; break;
+    default:               return -1;
     }
 
     switch (stopbit)
     {
-    case UART_STOPBIT_1:
-        uartConf.UART_StopBits = UART_StopBits_1;
-        break;
-    case UART_STOPBIT_2:
-        uartConf.UART_StopBits = UART_StopBits_2;
-        break;
-    default:
-        return -1;
+    case UART_STOPBIT_1: uartConf.UART_StopBits = UART_StopBits_1; break;
+    case UART_STOPBIT_2: uartConf.UART_StopBits = UART_StopBits_2; break;
+    default:             return -1;
     }
 
     uartConf.UART_Mode = 0;

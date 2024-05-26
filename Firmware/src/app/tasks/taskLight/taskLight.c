@@ -140,20 +140,10 @@ void taskLightCode(__attribute__((unused)) void *parameters)
             _taskLightInitAnim(event.timeToOff, event.color);
             switch (event.type)
             {
-            case LIGHT_EVENT_ANIM_TRANS:
-                _taskLightInitAnimTrans(event.transTimeToOn);
-                break;
-
-            case LIGHT_EVENT_ANIM_SIN:
-                _taskLightInitAnimSin(event.sinFreq, event.timeToOff);
-                break;
-
-            case LIGHT_EVENT_ANIM_BLINK:
-                _taskLightInitAnimBlink(event.blinkTimeOn, event.blinkTimeOff);
-                break;
-
-            default:
-                break;
+            case LIGHT_EVENT_ANIM_TRANS: _taskLightInitAnimTrans(event.transTimeToOn); break;
+            case LIGHT_EVENT_ANIM_SIN:   _taskLightInitAnimSin(event.sinFreq, event.timeToOff); break;
+            case LIGHT_EVENT_ANIM_BLINK: _taskLightInitAnimBlink(event.blinkTimeOn, event.blinkTimeOff); break;
+            default:                     break;
             }
         }
 
