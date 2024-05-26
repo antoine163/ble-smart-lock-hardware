@@ -30,31 +30,31 @@
  */
 
 // Include ---------------------------------------------------------------------
-#include "BlueNRG1_flash.h"
 #include "taskApp.h"
-#include "tasks/taskLight/taskLight.h"
+#include "BlueNRG1_flash.h"
 #include "tasks/taskBle/taskBle.h"
+#include "tasks/taskLight/taskLight.h"
 
 #include <string.h>
 
 #include <FreeRTOS.h>
-#include <task.h>
 #include <queue.h>
+#include <task.h>
 
 // Define ----------------------------------------------------------------------
 #define _TASK_APP_FLASH_ERASE_GUARD_TIME 25 // 25 ms
 #define _TASK_APP_FLASH_WRITE_GUARD_TIME 1  // 1 ms
 
-#define _TASK_APP_RESTART_DELAY_TICK (1 * 60 * 1000 / portTICK_PERIOD_MS)    //!< Tick to wait before restarting following error detection: 1min
-#define _TASK_APP_OFF_LIGHT_DELAY_TICK (15 * 60 * 1000 / portTICK_PERIOD_MS) //!< Tick to wait before torn off light following disconnection: 15min
-#define _TASK_APP_CLEAR_BONDED_DELAY_TICK (3 * 1000 / portTICK_PERIOD_MS)    //!< Tick to wait before clear all bonded devices from push bond button: 3s
-#define _TASK_APP_EXIT_BOND_DELAY_TICK (10 * 1000 / portTICK_PERIOD_MS)      //!< Tick to wait before exit the bond mode from active it: 10s
+#define _TASK_APP_RESTART_DELAY_TICK      (1 * 60 * 1000 / portTICK_PERIOD_MS)  //!< Tick to wait before restarting following error detection: 1min
+#define _TASK_APP_OFF_LIGHT_DELAY_TICK    (15 * 60 * 1000 / portTICK_PERIOD_MS) //!< Tick to wait before torn off light following disconnection: 15min
+#define _TASK_APP_CLEAR_BONDED_DELAY_TICK (3 * 1000 / portTICK_PERIOD_MS)       //!< Tick to wait before clear all bonded devices from push bond button: 3s
+#define _TASK_APP_EXIT_BOND_DELAY_TICK    (10 * 1000 / portTICK_PERIOD_MS)      //!< Tick to wait before exit the bond mode from active it: 10s
 
 #define _TASK_APP_EVENT_QUEUE_LENGTH 8
-#define _TASK_APP_DATA_STORAGE_PAGE (N_PAGES - 3)
+#define _TASK_APP_DATA_STORAGE_PAGE  (N_PAGES - 3)
 
-#define _TASK_APP_CHECK_VERBOSE(verbose) ((verbose == true) || (verbose == false))
-#define _TASK_APP_CHECK_PIN(pin) (pin <= 999999)
+#define _TASK_APP_CHECK_VERBOSE(verbose)  ((verbose == true) || (verbose == false))
+#define _TASK_APP_CHECK_PIN(pin)          (pin <= 999999)
 #define _TASK_APP_CHECK_BRIGHTNESS_TH(th) ((th >= 0.) && (th <= 100.))
 
 #define _TASK_APP_MIN(v1, v2) (v1 < v2) ? v1 : v2

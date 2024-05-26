@@ -26,6 +26,8 @@
 #include "board.h"
 #include "tasks/tasks.h"
 
+#include "vt100.h"
+
 #include <FreeRTOS.h>
 #include <task.h>
 
@@ -33,7 +35,7 @@
 int main()
 {
     boardInit();
-    boardPrintf(" ---- Ble Smart lock " PROJECT_VERSION " ---- \r\n");
+    boardPrintf("\r\n ---- " VT100_TEXT_UNDERLINE "Ble Smart lock " PROJECT_VERSION VT100_COLOR_RESET " ---- \r\n");
     tasksStaticInit();
     tasksStaticCreate();
     vTaskStartScheduler();

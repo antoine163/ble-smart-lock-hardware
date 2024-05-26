@@ -33,8 +33,15 @@
 #define UART_H
 
 // Include ---------------------------------------------------------------------
-#include "tools/fifo.h"
 #include "BlueNRG1_uart.h"
+#include "tools/fifo.h"
+
+#include <FreeRTOS.h>
+#include <semphr.h>
+#include <task.h>
+
+// Define ---------------------------------------------------------------------
+#define UART_MAX_TIMEOUT (unsigned int)(-1)
 
 // Enum ------------------------------------------------------------------------
 typedef enum
@@ -83,6 +90,9 @@ typedef struct
 
     fifo_t fifoRx;
     fifo_t fifoTx;
+
+    SemaphoreHandle_t fifoRxNoEmptySem;
+    StaticSemaphore_t fifoRxNoEmptySemBuffer;
 } uart_t;
 
 // Prototype functions ---------------------------------------------------------
@@ -98,5 +108,6 @@ int uart_config(uart_t *dev,
                 uart_stopbit_t stopbit);
 int uart_write(uart_t *dev, void const *buf, unsigned int nbyte);
 int uart_read(uart_t *dev, void *buf, unsigned int nbyte);
+int uart_waitRead(uart_t *dev, unsigned int timeout_ms);
 
 #endif // UART_H

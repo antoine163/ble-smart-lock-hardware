@@ -30,13 +30,13 @@
 
 #include "itConfig.h"
 
-#include "drivers/uart.h"
-#include "drivers/pwm.h"
 #include "drivers/adc.h"
+#include "drivers/pwm.h"
+#include "drivers/uart.h"
 
-#include <string.h>
-#include <stdio.h>
 #include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
 
 #include <FreeRTOS.h>
 #include <semphr.h>
@@ -110,6 +110,11 @@ void boardInit()
     _boardInitAdc();
 }
 
+void boardDgbEnable(bool enable)
+{
+    _board.verbose = enable;
+}
+
 int boardDgb(char const *format, ...)
 {
     int n = 0;
@@ -124,9 +129,11 @@ int boardDgb(char const *format, ...)
     return n;
 }
 
-void boardDgbEnable(bool enable)
+void boardWriteChar(char c)
 {
-    _board.verbose = enable;
+    xSemaphoreTake(_board.serialMutex, portMAX_DELAY);
+    uart_write(&_board.serial, &c, 1);
+    xSemaphoreGive(_board.serialMutex);
 }
 
 int boardPrintf(char const *format, ...)
@@ -137,6 +144,16 @@ int boardPrintf(char const *format, ...)
     va_end(ap);
 
     return n;
+}
+
+char boardReadChar()
+{
+    char c;
+    uart_waitRead(&_board.serial, UART_MAX_TIMEOUT);
+    xSemaphoreTake(_board.serialMutex, portMAX_DELAY);
+    uart_read(&_board.serial, &c, 1);
+    xSemaphoreGive(_board.serialMutex);
+    return c;
 }
 
 int _boardVprintf(char const *format, va_list ap)

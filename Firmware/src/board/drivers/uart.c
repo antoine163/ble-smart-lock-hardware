@@ -52,6 +52,8 @@ int uart_init(uart_t *dev,
     fifo_init(&dev->fifoTx, bufTx, sizeBufTx);
     fifo_init(&dev->fifoRx, bufRx, sizeBufRx);
 
+    dev->fifoRxNoEmptySem = xSemaphoreCreateBinaryStatic(&dev->fifoRxNoEmptySemBuffer);
+
     // Enable UART clk
     SysCtrl_PeripheralClockCmd(CLOCK_PERIPH_UART, ENABLE);
 
@@ -76,6 +78,8 @@ int uart_deinit(uart_t *dev)
     // De init uart and disable clock
     UART_DeInit();
     SysCtrl_PeripheralClockCmd(CLOCK_PERIPH_UART, DISABLE);
+
+    vSemaphoreDelete(dev->fifoRxNoEmptySem);
 
     _usart_dev = NULL;
     dev->periph = NULL;
@@ -153,7 +157,7 @@ int uart_config(uart_t *dev,
     UART_Init(&uartConf);
 
     // Enable RX FIFO Full Interrupt
-    UART_RxFifoIrqLevelConfig(FIFO_LEV_1_64);
+    UART_RxFifoIrqLevelConfig(FIFO_LEV_3_4);
     UART_ITConfig(UART_IT_RX, ENABLE);
 
     // Enable UART
@@ -232,14 +236,36 @@ int uart_read(uart_t *dev, void *buf, unsigned int nbyte)
         FIFO_PUSH_BYTE((&dev->fifoRx), (uint8_t)byte);
     }
 
+    if (fifo_isEmpty(&dev->fifoRx))
+        xSemaphoreTake(dev->fifoRxNoEmptySem, 0);
+
     UART_ITConfig(UART_IT_RX, ENABLE);
 
     return n;
 }
 
+int uart_waitRead(uart_t *dev, unsigned int timeout_ms)
+{
+    TickType_t tickOut = portMAX_DELAY;
+    if (timeout_ms != UART_MAX_TIMEOUT)
+        tickOut = timeout_ms / portTICK_PERIOD_MS;
+
+    // Attendre que la fifo Rx ne sois pas vide
+    UART_RxFifoIrqLevelConfig(FIFO_LEV_1_64);
+    if (xSemaphoreTake(dev->fifoRxNoEmptySem, tickOut) == pdTRUE)
+        // Redonnez le sémaphore car on lie rien ici, la fifo rx n'est donc pas
+        // vide.
+        xSemaphoreGive(dev->fifoRxNoEmptySem);
+    UART_RxFifoIrqLevelConfig(FIFO_LEV_3_4);
+
+    return fifo_used(&dev->fifoRx);
+}
+
 // ISR handler -----------------------------------------------------------------
 static inline void _uartIsrHandler(uart_t *dev)
 {
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
     // -- Manage transmit data --
     // The UART Tx FiFo is empty and the interrupt is enable ?
     if ((UART_GetITStatus(UART_IT_TXFE) == SET) &&
@@ -274,7 +300,11 @@ static inline void _uartIsrHandler(uart_t *dev)
             uint16_t byte = UART_ReceiveData();
             FIFO_PUSH_BYTE((&dev->fifoRx), (uint8_t)byte);
         }
+
+        xSemaphoreGiveFromISR(dev->fifoRxNoEmptySem, &xHigherPriorityTaskWoken);
     }
+
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
 
 void UART_IT_HANDLER()

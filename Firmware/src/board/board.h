@@ -37,15 +37,15 @@
  */
 typedef enum
 {
-    COLOR_OFF,          /**< No color / off */
-    COLOR_RED,          /**< Red color */
-    COLOR_GREEN,        /**< Green color */
-    COLOR_BLUE,         /**< Blue color */
-    COLOR_YELLOW,       /**< Yellow color */
-    COLOR_CYAN,         /**< Cyan color */
-    COLOR_MAGENTA,      /**< Magenta color */
-    COLOR_WHITE,        /**< White color */
-    COLOR_WHITE_LIGHT   /**< Light white color */
+    COLOR_OFF,        /**< No color / off */
+    COLOR_RED,        /**< Red color */
+    COLOR_GREEN,      /**< Green color */
+    COLOR_BLUE,       /**< Blue color */
+    COLOR_YELLOW,     /**< Yellow color */
+    COLOR_CYAN,       /**< Cyan color */
+    COLOR_MAGENTA,    /**< Magenta color */
+    COLOR_WHITE,      /**< White color */
+    COLOR_WHITE_LIGHT /**< Light white color */
 } color_t;
 
 /**
@@ -53,15 +53,19 @@ typedef enum
  */
 typedef enum
 {
-    BOARD_EVENT_BUTTON_BOND_STATE,  /**< Event for button bond state */
-    BOARD_EVENT_DOOR_STATE,         /**< Event for door state */
+    BOARD_EVENT_BUTTON_BOND_STATE, /**< Event for button bond state */
+    BOARD_EVENT_DOOR_STATE,        /**< Event for door state */
 } boardEvent_t;
 
 // Prototype functions ---------------------------------------------------------
 void boardInit();
-int boardDgb(char const *format, ...);
+
 void boardDgbEnable(bool enable);
+int boardDgb(char const *format, ...);
+
+void boardWriteChar(char c);
 int boardPrintf(char const *format, ...);
+char boardReadChar();
 
 void boardSetLightColor(color_t color);
 void boardSetLightDc(float dc);

@@ -33,8 +33,8 @@
 #define TASKS_H
 
 // Include ---------------------------------------------------------------------
-#include "taskBle/taskBle.h"
 #include "taskApp/taskApp.h"
+#include "taskBle/taskBle.h"
 #include "taskLight/taskLight.h"
 #include "taskTerm/taskTerm.h"
 

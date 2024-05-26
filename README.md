@@ -54,7 +54,7 @@ Pour effacer la liste des appareils appairés, maintenez le bouton *bond* enfonc
 
 Il est possible de supprimer cette liste avec la commande `bond-clear` via la liaison série.
 
-## Liste des commende série
+## Liste des commande série
 - `help`: Afficher l'aide.
 - `verbose` : Lecture/écriture du mode verbeux. 1 pour activer, 0 (par défaut) - `pour désactiver.
 - `pin` : Lecture/écriture du code PIN (215426 par défaut).
