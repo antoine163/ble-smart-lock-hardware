@@ -187,13 +187,16 @@ int uart_write(uart_t *dev, void const *buf, unsigned int nbyte)
         UART_SendData(byte);
     }
 
-    // Transfer data of buf to Uart Fifo
-    while ((UART_GetFlagStatus(UART_FLAG_TXFF) == RESET) &&
-           ((unsigned int)n < nbyte))
+    if (fifo_isEmpty(&dev->fifoTx))
     {
-        uint16_t byte = *((uint8_t *)buf + n);
-        UART_SendData(byte);
-        n++;
+        // Transfer data of buf to Uart Fifo
+        while ((UART_GetFlagStatus(UART_FLAG_TXFF) == RESET) &&
+               ((unsigned int)n < nbyte))
+        {
+            uint16_t byte = *((uint8_t *)buf + n);
+            UART_SendData(byte);
+            n++;
+        }
     }
 
     // Transfer remaining data of buf to fifoTx
