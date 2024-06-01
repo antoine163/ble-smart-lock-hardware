@@ -71,7 +71,7 @@
 #define configUSE_APPLICATION_TASK_TAG            0
 #define configUSE_COUNTING_SEMAPHORES             1
 #define configGENERATE_RUN_TIME_STATS             1
-#define configUSE_TICKLESS_IDLE                   0
+#define configUSE_TICKLESS_IDLE                   1
 #define configEXPECTED_IDLE_TIME_BEFORE_SLEEP     2 // 2 ms
 #define configSUPPORT_STATIC_ALLOCATION           1
 #define configKERNEL_PROVIDED_STATIC_MEMORY       1
@@ -124,12 +124,5 @@ extern uint32_t HAL_VTimerGetCurrentTime_sysT32(void);
 
 /*-----------------------------------------------------------*/
 
-// #ifdef __GNUC__
-
-// #include "portmacro.h"
-// /* Tickless idle/low power functionality. */
-// extern void vPortSuppressTicksAndSleep(TickType_t xExpectedIdleTime);
-// #define portSUPPRESS_TICKS_AND_SLEEP(xExpectedIdleTime) vPortSuppressTicksAndSleep(xExpectedIdleTime)
-// #endif
 
 #endif /* FREERTOS_CONFIG_H */
