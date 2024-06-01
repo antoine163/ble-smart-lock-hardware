@@ -489,10 +489,14 @@ int _taskTermCmdBonded(
     Bonded_Device_Entry_t devices[MAX_NUM_BONDED_DEVICES];
     int n = taskBleGetBonded(devices);
 
+    if (n <= 0)
+        boardPrintf("No device bonded!\r\n");
+    else
+        boardPrintf("       Address    Type\r\n");
+
     for (int i = 0; i < n; i++)
     {
-        boardPrintf("       Address    Type\r\n");
-        boardPrintf("0x%x%x%x%x%x%x    ",
+        boardPrintf("0x%02x%02x%02x%02x%02x%02x    ",
                     devices[i].Address[5],
                     devices[i].Address[4],
                     devices[i].Address[3],
