@@ -224,13 +224,8 @@ void taskAppCode(__attribute__((unused)) void *parameters)
             {
                 switch (eventItem.boardEvent)
                 {
-                case BOARD_EVENT_DOOR_STATE:
-                    _taskAppBoardEventDoorStateHandle();
-                    break;
-
-                case BOARD_EVENT_BUTTON_BOND_STATE:
-                    _taskAppBoardEventButtonBondStateHandle();
-                    break;
+                case BOARD_EVENT_DOOR_STATE:        _taskAppBoardEventDoorStateHandle(); break;
+                case BOARD_EVENT_BUTTON_BOND_STATE: _taskAppBoardEventButtonBondStateHandle(); break;
                 }
                 break;
             }
@@ -239,15 +234,9 @@ void taskAppCode(__attribute__((unused)) void *parameters)
             {
                 switch (eventItem.bleEvent)
                 {
-                case BLE_EVENT_ERR:
-                    _taskAppBleEventErrHandle();
-                    break;
-                case BLE_EVENT_CONNECTED:
-                    _taskAppBleEventConnectedHandle();
-                    break;
-                case BLE_EVENT_DISCONNECTED:
-                    _taskAppBleEventDisconnectedHandle();
-                    break;
+                case BLE_EVENT_ERR:          _taskAppBleEventErrHandle(); break;
+                case BLE_EVENT_CONNECTED:    _taskAppBleEventConnectedHandle(); break;
+                case BLE_EVENT_DISCONNECTED: _taskAppBleEventDisconnectedHandle(); break;
                 }
                 break;
             }
@@ -270,7 +259,7 @@ void taskAppCode(__attribute__((unused)) void *parameters)
         if ((_taskApp.ticksToRestart != portMAX_DELAY) &&
             (xTaskCheckForTimeOut(&_taskApp.timeOutRestart, &_taskApp.ticksToRestart) != pdFALSE))
         {
-            NVIC_SystemReset();
+            boardReset();
         }
 
         if ((_taskApp.ticksToOffLight != portMAX_DELAY) &&
@@ -300,9 +289,7 @@ void taskAppCode(__attribute__((unused)) void *parameters)
                 _taskApp.clearBondedLightFlash = false;
 
                 // Restart following a whitelist cleanup.
-                boardDgb("App: Rebooting ...\r\n");
-                vTaskDelay(1); // wait to print message
-                NVIC_SystemReset();
+                boardReset();
             }
         }
 
@@ -317,6 +304,17 @@ void taskAppCode(__attribute__((unused)) void *parameters)
             _taskAppUpdateLight();
         }
     }
+}
+
+int taskAppResetConfig()
+{
+    taskAppEventItem_t eventItem = {.event = _TASK_APP_EVENT_WRITE_NVM};
+    memcpy((void *)&eventItem.nvmNewData,
+           (const void *)&_taskAppNvmDefaultData,
+           sizeof(taskAppNvmData_t));
+
+    xQueueSend(_taskApp.eventQueue, &eventItem, portMAX_DELAY);
+    return 0;
 }
 
 float taskAppGetBrightnessTh()

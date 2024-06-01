@@ -11,7 +11,8 @@ target_include_directories(middleware PUBLIC
 
 # Add freeRTOS library to middleware library library
 add_library(freertos_config INTERFACE)
-target_include_directories(freertos_config SYSTEM INTERFACE ${CMAKE_SOURCE_DIR}/src/app)
+target_include_directories(freertos_config SYSTEM INTERFACE
+    ${CMAKE_SOURCE_DIR}/src/board)
 set(FREERTOS_PORT "GCC_ARM_CM0" CACHE STRING "" FORCE)
 add_subdirectory(FreeRTOS-Kernel)
 

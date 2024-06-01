@@ -41,8 +41,6 @@
 #include <FreeRTOS.h>
 #include <semphr.h>
 
-#include <tasks/taskApp/taskApp.h>
-
 #include <math.h>
 
 // Define ----------------------------------------------------------------------
@@ -108,6 +106,16 @@ void boardInit()
     _boardInitUart();
     _boardInitPwm();
     _boardInitAdc();
+
+    // Todo wdg
+}
+
+void boardReset()
+{
+    // Restart following a whitelist cleanup.
+    boardDgb("App: Rebooting ...\r\n");
+    vTaskDelay(1); // wait to print message
+    NVIC_SystemReset();
 }
 
 void boardDgbEnable(bool enable)
@@ -146,10 +154,10 @@ int boardPrintf(char const *format, ...)
     return n;
 }
 
-char boardReadChar()
+char boardReadChar(unsigned int timeout)
 {
-    char c;
-    uart_waitRead(&_board.serial, UART_MAX_TIMEOUT);
+    char c = '\0';
+    uart_waitRead(&_board.serial, timeout);
     xSemaphoreTake(_board.serialMutex, portMAX_DELAY);
     uart_read(&_board.serial, &c, 1);
     xSemaphoreGive(_board.serialMutex);

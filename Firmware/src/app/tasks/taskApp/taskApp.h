@@ -41,6 +41,8 @@
 void taskAppCodeInit();
 void taskAppCode(void *parameters);
 
+int taskAppResetConfig();
+
 float taskAppGetBrightnessTh();
 int taskAppSetBrightnessTh(float th);
 

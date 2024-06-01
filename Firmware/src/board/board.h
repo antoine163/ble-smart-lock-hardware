@@ -31,6 +31,9 @@
 
 #include <FreeRTOS.h>
 
+// Define ---------------------------------------------------------------------
+#define MAX_TIMEOUT (unsigned int)(-1)
+
 // Enum ------------------------------------------------------------------------
 /**
  * @brief Enum representing different colors.
@@ -59,13 +62,14 @@ typedef enum
 
 // Prototype functions ---------------------------------------------------------
 void boardInit();
+void boardReset();
 
 void boardDgbEnable(bool enable);
 int boardDgb(char const *format, ...);
 
 void boardWriteChar(char c);
 int boardPrintf(char const *format, ...);
-char boardReadChar();
+char boardReadChar(unsigned int timeout);
 
 void boardSetLightColor(color_t color);
 void boardSetLightDc(float dc);

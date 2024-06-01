@@ -36,6 +36,7 @@
 
 #include "vt100.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -56,6 +57,12 @@ typedef struct
     char *help;
 } taskTermCmd_t;
 
+// External functions ----------------------------------------------------------
+extern UBaseType_t uxTaskGetSystemState2(
+    TaskStatus_t *const pxTaskStatusArray,
+    const UBaseType_t uxArraySize,
+    configRUN_TIME_COUNTER_TYPE *const pulTotalRunTime);
+
 // Private prototype functions -------------------------------------------------
 int _taskTermReadline(char *str, size_t nbyte);
 
@@ -65,9 +72,11 @@ int _taskTermCmdVerbose(int argc, char *argv[]);
 int _taskTermCmdPin(int argc, char *argv[]);
 int _taskTermCmdBri(int argc, char *argv[]);
 int _taskTermCmdBriTh(int argc, char *argv[]);
+int _taskTermCmdConfig(int argc, char *argv[]);
 int _taskTermCmdBond(int argc, char *argv[]);
 int _taskTermCmdBondClear(int argc, char *argv[]);
 int _taskTermCmdReset(int argc, char *argv[]);
+int _taskTermCmdTop(int argc, char *argv[]);
 
 // Global variables ------------------------------------------------------------
 static taskTermCmd_t _taskTermCmd[] = {
@@ -102,6 +111,11 @@ static taskTermCmd_t _taskTermCmd[] = {
         .func = _taskTermCmdBriTh,
     },
     {
+        .name = "config",
+        .help = "Show all configuration).",
+        .func = _taskTermCmdConfig,
+    },
+    {
         .name = "bond",
         .help = "Display the list of paired devices.",
         .func = _taskTermCmdBond,
@@ -115,6 +129,11 @@ static taskTermCmd_t _taskTermCmd[] = {
         .name = "reset",
         .help = "Reset configuration to default.",
         .func = _taskTermCmdReset,
+    },
+    {
+        .name = "top",
+        .help = "Show tasks state.",
+        .func = _taskTermCmdTop,
     }};
 
 // Implemented functions -------------------------------------------------------
@@ -184,7 +203,7 @@ int _taskTermReadline(char *str, size_t nbyte)
 
     do
     {
-        char c = boardReadChar();
+        char c = boardReadChar(MAX_TIMEOUT);
 
         if (vt100_escape == true)
         {
@@ -208,7 +227,7 @@ int _taskTermReadline(char *str, size_t nbyte)
                 str_i++;
                 boardPrintf(VT100_CURSOR_RIGHT());
             }
-            else if (strcmp(vt100_cmd, VT100_ESC "[3~") == 0) // Suppr key
+            else if (strcmp(vt100_cmd, VT100_ESC "[3~") == 0) // Supp key
             {
                 if (str_n <= str_i)
                     continue;
@@ -283,6 +302,10 @@ int _taskTermReadline(char *str, size_t nbyte)
             boardPrintf("\r\n");
             break; // exit boardReadline() function
         }
+        else if (c == '\n')
+        {
+            continue;
+        }
         else
         {
             if (str_n >= nbyte)
@@ -315,25 +338,15 @@ int _taskTermCmdVersion(
     boardPrintf("%s - %s\r\n", PROJECT_VERSION, __DATE__);
     return 0;
 }
-
+volatile bool stop = false;
 int _taskTermCmdHelp(
     __attribute__((unused)) int argc,
     __attribute__((unused)) char *argv[])
 {
-    char addspac[32] = {'\0'};
-    unsigned int maxCmdChar = 0;
-    for (unsigned int i = 0; i < sizeof(_taskTermCmd) / sizeof(taskTermCmd_t); i++)
-        maxCmdChar = _TASK_TERM_MAX(maxCmdChar, strlen(_taskTermCmd[i].name));
-    maxCmdChar = _TASK_TERM_MIN(maxCmdChar, sizeof(addspac) - 1);
-
     for (unsigned int i = 0; i < sizeof(_taskTermCmd) / sizeof(taskTermCmd_t); i++)
     {
-        size_t len = strlen(_taskTermCmd[i].name);
-        memset(addspac, ' ', maxCmdChar - len);
-        addspac[maxCmdChar - len] = '\0';
-
-        boardPrintf(VT100_TEXT_BOLD "%s:" VT100_COLOR_RESET, _taskTermCmd[i].name);
-        boardPrintf("%s %s\r\n", addspac, _taskTermCmd[i].help);
+        boardPrintf(VT100_TEXT_BOLD "%-14s: " VT100_COLOR_RESET, _taskTermCmd[i].name);
+        boardPrintf("%s\r\n", _taskTermCmd[i].help);
     }
     return EXIT_SUCCESS;
 }
@@ -349,6 +362,21 @@ int _taskTermCmdPin(
     __attribute__((unused)) int argc,
     __attribute__((unused)) char *argv[])
 {
+    if (argc == 1)
+    {
+        boardPrintf("Pin:%u\r\n", taskAppGetPin());
+    }
+    else
+    {
+        unsigned int pin;
+        sscanf(argv[1], "%u", &pin);
+
+        if (taskAppSetPin(pin) < 0)
+            boardPrintf("Error: Pin must be within the range of 0 to 999999.\r\n");
+        else
+            boardPrintf("Success!\r\n");
+    }
+
     return EXIT_SUCCESS;
 }
 
@@ -366,6 +394,13 @@ int _taskTermCmdBriTh(
     return EXIT_SUCCESS;
 }
 
+int _taskTermCmdConfig(
+    __attribute__((unused)) int argc,
+    __attribute__((unused)) char *argv[])
+{
+    return EXIT_SUCCESS;
+}
+
 int _taskTermCmdBond(
     __attribute__((unused)) int argc,
     __attribute__((unused)) char *argv[])
@@ -377,6 +412,11 @@ int _taskTermCmdBondClear(
     __attribute__((unused)) int argc,
     __attribute__((unused)) char *argv[])
 {
+    taskBleClearAllPairing();
+    boardPrintf("Clearing bonded devices.\r\n");
+    vTaskDelay(400 / portTICK_PERIOD_MS); // wait to reset and clear
+    boardReset();
+
     return EXIT_SUCCESS;
 }
 
@@ -384,5 +424,119 @@ int _taskTermCmdReset(
     __attribute__((unused)) int argc,
     __attribute__((unused)) char *argv[])
 {
+    taskAppResetConfig();
+    taskBleClearAllPairing();
+    boardPrintf("Reseting config and clearing bonded devices.\r\n");
+    vTaskDelay(400 / portTICK_PERIOD_MS); // wait to reset and clear
+    boardReset();
+
+    return EXIT_SUCCESS;
+}
+
+void printTaskInfo(TaskStatus_t *taskStatus, unsigned long totalRunTime)
+{
+    if (taskStatus->eCurrentState == eRunning)
+        boardPrintf(VT100_TEXT_BOLD);
+
+    // Task Name
+    boardPrintf(" %9s ", taskStatus->pcTaskName);
+
+    // State
+    switch (taskStatus->eCurrentState)
+    {
+    case eRunning:   boardPrintf("  Running   "); break;
+    case eReady:     boardPrintf("  Ready     "); break;
+    case eBlocked:   boardPrintf("  Blocked   "); break;
+    case eSuspended: boardPrintf("  Suspended "); break;
+    case eDeleted:   boardPrintf("  Deleted   "); break;
+    default:         boardPrintf("  Unknown   "); break;
+    }
+
+    // Priority
+    boardPrintf("  %-8u ", taskStatus->uxCurrentPriority);
+
+    // Stack Free
+    boardPrintf("  %-10u ", taskStatus->usStackHighWaterMark);
+
+    // CPU Usage
+    float cpuUsage = 0.f;
+    if (totalRunTime > 0)
+    {
+        cpuUsage = (float)taskStatus->ulRunTimeCounter * 100.f / (float)totalRunTime;
+    }
+    int cpuUsageInt = (int)cpuUsage;
+    int cpuUsageFrac = (cpuUsage - (float)cpuUsageInt) * 10;
+    boardPrintf("  %u.%u%%", cpuUsageInt, cpuUsageFrac);
+
+    boardPrintf(VT100_COLOR_RESET "\r\n" VT100_CLEAR_LINE_FROM_CURSOR);
+}
+
+void printTasksInfo()
+{
+    TaskStatus_t taskStatusArray[6];
+    TaskStatus_t *taskStatusArrayStor[6];
+    UBaseType_t taskCount;
+    unsigned long totalRunTime;
+
+    // Get the number of tasks
+    taskCount = uxTaskGetNumberOfTasks();
+
+    // Get the task state
+    taskCount = uxTaskGetSystemState2(
+        taskStatusArray,
+        sizeof(taskStatusArray) / sizeof(TaskStatus_t),
+        &totalRunTime);
+
+    // Stor by CPU Usage
+    for (unsigned int i = 0; i < taskCount; i++)
+        taskStatusArrayStor[i] = &taskStatusArray[i];
+
+    for (unsigned int i = 0; i < taskCount - 1; i++)
+    {
+        if (taskStatusArrayStor[i]->ulRunTimeCounter < taskStatusArrayStor[i + 1]->ulRunTimeCounter)
+        {
+            TaskStatus_t *swap = taskStatusArrayStor[i];
+            taskStatusArrayStor[i] = taskStatusArrayStor[i + 1];
+            taskStatusArrayStor[i + 1] = swap;
+
+            for (unsigned int ii = i; ii > 0; ii--)
+            {
+                if (taskStatusArrayStor[ii - 1]->ulRunTimeCounter < taskStatusArrayStor[ii]->ulRunTimeCounter)
+                {
+                    TaskStatus_t *swap = taskStatusArrayStor[ii];
+                    taskStatusArrayStor[ii] = taskStatusArrayStor[ii - 1];
+                    taskStatusArrayStor[ii - 1] = swap;
+                }
+            }
+        }
+    }
+
+    // Print header
+    boardPrintf(" Task Name   State       Priority   Stack Free   CPU Usage\r\n");
+
+    // Iterate over all tasks and print their information
+    for (UBaseType_t i = 0; i < taskCount; i++)
+        printTaskInfo(taskStatusArrayStor[i], totalRunTime);
+}
+
+int _taskTermCmdTop(
+    __attribute__((unused)) int argc,
+    __attribute__((unused)) char *argv[])
+{
+    boardPrintf(VT100_CLEAR_SCREEN);
+
+    for (;;)
+    {
+        boardPrintf(VT100_HIDE_CURSOR VT100_CURSOR_HOME);
+        printTasksInfo();
+        boardPrintf(" 'Ctrl + C' to quit.");
+        boardPrintf(VT100_SHOW_CURSOR);
+
+        char c = boardReadChar(1000);
+        if (c == 3) // c == Ctrl + C ?
+            break;
+    }
+
+    boardPrintf("\r\n");
     return EXIT_SUCCESS;
 }

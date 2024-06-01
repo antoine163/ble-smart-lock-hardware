@@ -31,32 +31,32 @@
 
 // Include ---------------------------------------------------------------------
 #include "taskBle.h"
+#include "bleConfig.h"
 #include "board.h"
 #include "itConfig.h"
-#include "bleConfig.h"
 #include "tasks/taskApp/taskApp.h"
 
 #include <string.h>
 
-#include "bluenrg1_stack.h"
-#include "bluenrg1_hal.h"
 #include "bluenrg1_gap.h"
 #include "bluenrg1_gatt_server.h"
+#include "bluenrg1_hal.h"
+#include "bluenrg1_stack.h"
 #include "sleep.h"
 #include "sm.h"
 
 #include <FreeRTOS.h>
-#include <task.h>
 #include <queue.h>
 #include <semphr.h>
+#include <task.h>
 
 // Define ----------------------------------------------------------------------
-#define _TASK_BLE_DEFAULT_NAME "Ble Smart Lock"
-#define _TASK_BLE_NAME_MAX_SIZE 16
+#define _TASK_BLE_DEFAULT_NAME             "Ble Smart Lock"
+#define _TASK_BLE_NAME_MAX_SIZE            16
 #define _TASK_BLE_BOND_ADV_INTERVAL_MIN_MS 160
 #define _TASK_BLE_BOND_ADV_INTERVAL_MAX_MS 320
-#define _TASK_BLE_ADV_INTERVAL_MIN_MS 600
-#define _TASK_BLE_ADV_INTERVAL_MAX_MS 900
+#define _TASK_BLE_ADV_INTERVAL_MIN_MS      600
+#define _TASK_BLE_ADV_INTERVAL_MAX_MS      900
 
 #define _TASK_BLE_EVENT_QUEUE_LENGTH 8
 
@@ -217,14 +217,14 @@ void taskBleCodeInit()
     _taskBle.bleStatus = BlueNRG_Stack_Initialization(&BlueNRG_Stack_Init_params);
     if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
         boardDgb("Ble: stack init: %s\r\n",
-                    _taskBleStatusToStr(_taskBle.bleStatus));
+                 _taskBleStatusToStr(_taskBle.bleStatus));
 
     if (_taskBle.bleStatus == BLE_STATUS_SUCCESS)
     {
         _taskBle.bleStatus = _taskBleInitDevice();
         if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
             boardDgb("Ble: init device error: %s\r\n",
-                        _taskBleStatusToStr(_taskBle.bleStatus));
+                     _taskBleStatusToStr(_taskBle.bleStatus));
     }
 
     if (_taskBle.bleStatus == BLE_STATUS_SUCCESS)
@@ -232,7 +232,7 @@ void taskBleCodeInit()
         _taskBle.bleStatus = _taskBleAddServices();
         if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
             boardDgb("Ble: add service error: %s\r\n",
-                        _taskBleStatusToStr(_taskBle.bleStatus));
+                     _taskBleStatusToStr(_taskBle.bleStatus));
     }
 
     if (_taskBle.bleStatus == BLE_STATUS_SUCCESS)
@@ -274,8 +274,7 @@ void taskBleCode(__attribute__((unused)) void *parameters)
             boardLedOff();
             break;
         }
-        default:
-            break;
+        default: break;
         }
         xSemaphoreGive(_taskBle.bleStackMutex);
     }
@@ -311,7 +310,7 @@ int taskBleClearAllPairing()
     if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
     {
         boardDgb("Ble: clear security data base error: %s\r\n",
-                    _taskBleStatusToStr(_taskBle.bleStatus));
+                 _taskBleStatusToStr(_taskBle.bleStatus));
     }
     else
     {
@@ -349,7 +348,7 @@ int taskBleUpdateAtt(bleAtt_t att, const void *buf, size_t nbyte)
     if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
     {
         boardDgb("Ble: update char value error: %s\r\n",
-                    _taskBleStatusToStr(_taskBle.bleStatus));
+                 _taskBleStatusToStr(_taskBle.bleStatus));
     }
     else
         n = nbyte;
@@ -381,7 +380,7 @@ void _taskBleManageFlags()
         if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
         {
             boardDgb("Ble: slave security request error: %s\r\n",
-                        _taskBleStatusToStr(_taskBle.bleStatus));
+                     _taskBleStatusToStr(_taskBle.bleStatus));
             taskBleSendEvent(BLE_EVENT_ERR);
         }
     }
@@ -651,7 +650,7 @@ void _taskBleUpdateWhitelist()
     if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
     {
         boardDgb("Ble: update whitelist error: %s\r\n",
-                    _taskBleStatusToStr(_taskBle.bleStatus));
+                 _taskBleStatusToStr(_taskBle.bleStatus));
         taskBleSendEvent(BLE_EVENT_ERR);
     }
 }
@@ -713,7 +712,7 @@ void _taskBleMakeDiscoverable(bool bond)
     if (_taskBle.bleStatus != BLE_STATUS_SUCCESS)
     {
         boardDgb("Ble: make discoverable error: %s\r\n",
-                    _taskBleStatusToStr(_taskBle.bleStatus));
+                 _taskBleStatusToStr(_taskBle.bleStatus));
         taskBleSendEvent(BLE_EVENT_ERR);
     }
 }
@@ -723,139 +722,81 @@ const char *_taskBleStatusToStr(tBleStatus status)
     switch (status)
     {
     // Standard Error Codes
-    case BLE_STATUS_SUCCESS:
-        return "success";
-    case BLE_ERROR_UNKNOWN_HCI_COMMAND:
-        return "unknown hci command";
-    case BLE_ERROR_UNKNOWN_CONNECTION_ID:
-        return "unknown connextion id";
-    case BLE_ERROR_HARDWARE_FAILURE:
-        return "hardware failure";
-    case BLE_ERROR_AUTHENTICATION_FAILURE:
-        return "authentication failure";
-    case BLE_ERROR_KEY_MISSING:
-        return "key missing";
-    case BLE_ERROR_MEMORY_CAPACITY_EXCEEDED:
-        return "memory capacity exceeded";
-    case BLE_ERROR_CONNECTION_TIMEOUT:
-        return "connection timeout";
-    case BLE_ERROR_COMMAND_DISALLOWED:
-        return "command disallowed";
-    case BLE_ERROR_UNSUPPORTED_FEATURE:
-        return "unsupported feature";
-    case BLE_ERROR_INVALID_HCI_CMD_PARAMS:
-        return "invalid hci cmd params";
-    case BLE_ERROR_TERMINATED_REMOTE_USER:
-        return "terminated remote user";
-    case BLE_ERROR_TERMINATED_LOCAL_HOST:
-        return "terminated local_host";
-    case BLE_ERROR_UNSUPP_RMT_FEATURE:
-        return "unsupp rmt feature";
-    case BLE_ERROR_UNSPECIFIED:
-        return "unspecified";
-    case BLE_ERROR_PROCEDURE_TIMEOUT:
-        return "procedure timeout";
-    case BLE_ERROR_INSTANT_PASSED:
-        return "instant passed";
-    case BLE_ERROR_PARAMETER_OUT_OF_RANGE:
-        return "parameter out of range";
-    case BLE_ERROR_HOST_BUSY_PAIRING:
-        return "host busy pairing";
-    case BLE_ERROR_CONTROLLER_BUSY:
-        return "controller busy";
-    case BLE_ERROR_DIRECTED_ADVERTISING_TIMEOUT:
-        return "directed advertising timeout";
-    case BLE_ERROR_CONNECTION_END_WITH_MIC_FAILURE:
-        return "connection end with mic failure";
-    case BLE_ERROR_CONNECTION_FAILED_TO_ESTABLISH:
-        return "connection failed to establish";
+    case BLE_STATUS_SUCCESS:                        return "success";
+    case BLE_ERROR_UNKNOWN_HCI_COMMAND:             return "unknown hci command";
+    case BLE_ERROR_UNKNOWN_CONNECTION_ID:           return "unknown connextion id";
+    case BLE_ERROR_HARDWARE_FAILURE:                return "hardware failure";
+    case BLE_ERROR_AUTHENTICATION_FAILURE:          return "authentication failure";
+    case BLE_ERROR_KEY_MISSING:                     return "key missing";
+    case BLE_ERROR_MEMORY_CAPACITY_EXCEEDED:        return "memory capacity exceeded";
+    case BLE_ERROR_CONNECTION_TIMEOUT:              return "connection timeout";
+    case BLE_ERROR_COMMAND_DISALLOWED:              return "command disallowed";
+    case BLE_ERROR_UNSUPPORTED_FEATURE:             return "unsupported feature";
+    case BLE_ERROR_INVALID_HCI_CMD_PARAMS:          return "invalid hci cmd params";
+    case BLE_ERROR_TERMINATED_REMOTE_USER:          return "terminated remote user";
+    case BLE_ERROR_TERMINATED_LOCAL_HOST:           return "terminated local_host";
+    case BLE_ERROR_UNSUPP_RMT_FEATURE:              return "unsupp rmt feature";
+    case BLE_ERROR_UNSPECIFIED:                     return "unspecified";
+    case BLE_ERROR_PROCEDURE_TIMEOUT:               return "procedure timeout";
+    case BLE_ERROR_INSTANT_PASSED:                  return "instant passed";
+    case BLE_ERROR_PARAMETER_OUT_OF_RANGE:          return "parameter out of range";
+    case BLE_ERROR_HOST_BUSY_PAIRING:               return "host busy pairing";
+    case BLE_ERROR_CONTROLLER_BUSY:                 return "controller busy";
+    case BLE_ERROR_DIRECTED_ADVERTISING_TIMEOUT:    return "directed advertising timeout";
+    case BLE_ERROR_CONNECTION_END_WITH_MIC_FAILURE: return "connection end with mic failure";
+    case BLE_ERROR_CONNECTION_FAILED_TO_ESTABLISH:  return "connection failed to establish";
 
     // Generic/System error codes
-    case BLE_STATUS_UNKNOWN_CONNECTION_ID:
-        return "unknown connection id";
-    case BLE_STATUS_FAILED:
-        return "failed";
-    case BLE_STATUS_INVALID_PARAMS:
-        return "invalid params";
-    case BLE_STATUS_BUSY:
-        return "busy";
-    case BLE_STATUS_PENDING:
-        return "pending";
-    case BLE_STATUS_NOT_ALLOWED:
-        return "not allowed";
-    case BLE_STATUS_ERROR:
-        return "error";
-    case BLE_STATUS_OUT_OF_MEMORY:
-        return "out of memory";
+    case BLE_STATUS_UNKNOWN_CONNECTION_ID: return "unknown connection id";
+    case BLE_STATUS_FAILED:                return "failed";
+    case BLE_STATUS_INVALID_PARAMS:        return "invalid params";
+    case BLE_STATUS_BUSY:                  return "busy";
+    case BLE_STATUS_PENDING:               return "pending";
+    case BLE_STATUS_NOT_ALLOWED:           return "not allowed";
+    case BLE_STATUS_ERROR:                 return "error";
+    case BLE_STATUS_OUT_OF_MEMORY:         return "out of memory";
 
     // L2CAP error codes
-    case BLE_STATUS_INVALID_CID:
-        return "invalid cid";
+    case BLE_STATUS_INVALID_CID: return "invalid cid";
 
     // Security Manager error codes
-    case BLE_STATUS_DEV_IN_BLACKLIST:
-        return "device in blacklist";
-    case BLE_STATUS_CSRK_NOT_FOUND:
-        return "csrk not found";
-    case BLE_STATUS_IRK_NOT_FOUND:
-        return "irk not found";
-    case BLE_STATUS_DEV_NOT_FOUND:
-        return "device not found";
-    case BLE_STATUS_SEC_DB_FULL:
-        return "sec db full";
-    case BLE_STATUS_DEV_NOT_BONDED:
-        return "device not bonded";
-    case BLE_INSUFFICIENT_ENC_KEYSIZE:
-        return "insufficient enc keysize";
+    case BLE_STATUS_DEV_IN_BLACKLIST:  return "device in blacklist";
+    case BLE_STATUS_CSRK_NOT_FOUND:    return "csrk not found";
+    case BLE_STATUS_IRK_NOT_FOUND:     return "irk not found";
+    case BLE_STATUS_DEV_NOT_FOUND:     return "device not found";
+    case BLE_STATUS_SEC_DB_FULL:       return "sec db full";
+    case BLE_STATUS_DEV_NOT_BONDED:    return "device not bonded";
+    case BLE_INSUFFICIENT_ENC_KEYSIZE: return "insufficient enc keysize";
 
     // Gatt layer Error Codes
-    case BLE_STATUS_INVALID_HANDLE:
-        return "invalid handle";
-    case BLE_STATUS_OUT_OF_HANDLE:
-        return "out of handle";
-    case BLE_STATUS_INVALID_OPERATION:
-        return "invalid operation";
-    case BLE_STATUS_CHARAC_ALREADY_EXISTS:
-        return "charac already exists";
-    case BLE_STATUS_INSUFFICIENT_RESOURCES:
-        return "insufficient resources";
-    case BLE_STATUS_SEC_PERMISSION_ERROR:
-        return "satisfy permission error";
+    case BLE_STATUS_INVALID_HANDLE:         return "invalid handle";
+    case BLE_STATUS_OUT_OF_HANDLE:          return "out of handle";
+    case BLE_STATUS_INVALID_OPERATION:      return "invalid operation";
+    case BLE_STATUS_CHARAC_ALREADY_EXISTS:  return "charac already exists";
+    case BLE_STATUS_INSUFFICIENT_RESOURCES: return "insufficient resources";
+    case BLE_STATUS_SEC_PERMISSION_ERROR:   return "satisfy permission error";
 
     // GAP layer Error Codes
-    case BLE_STATUS_ADDRESS_NOT_RESOLVED:
-        return "address not resolved";
+    case BLE_STATUS_ADDRESS_NOT_RESOLVED: return "address not resolved";
 
     // Link Layer error Codes
-    case BLE_STATUS_NO_VALID_SLOT:
-        return "no valid slot";
-    case BLE_STATUS_SCAN_WINDOW_SHORT:
-        return "scan window short";
-    case BLE_STATUS_NEW_INTERVAL_FAILED:
-        return "new interval failed";
-    case BLE_STATUS_INTERVAL_TOO_LARGE:
-        return "interval too large";
-    case BLE_STATUS_LENGTH_FAILED:
-        return "length failed";
+    case BLE_STATUS_NO_VALID_SLOT:       return "no valid slot";
+    case BLE_STATUS_SCAN_WINDOW_SHORT:   return "scan window short";
+    case BLE_STATUS_NEW_INTERVAL_FAILED: return "new interval failed";
+    case BLE_STATUS_INTERVAL_TOO_LARGE:  return "interval too large";
+    case BLE_STATUS_LENGTH_FAILED:       return "length failed";
 
     // flash error codes
-    case FLASH_READ_FAILED:
-        return "Flash read failed";
-    case FLASH_WRITE_FAILED:
-        return "Flash write failed";
-    case FLASH_ERASE_FAILED:
-        return "Flash erase failed";
+    case FLASH_READ_FAILED:  return "Flash read failed";
+    case FLASH_WRITE_FAILED: return "Flash write failed";
+    case FLASH_ERASE_FAILED: return "Flash erase failed";
 
     // Profiles Library Error Codes
-    case BLE_STATUS_TIMEOUT:
-        return "timeout";
-    case BLE_STATUS_PROFILE_ALREADY_INITIALIZED:
-        return "profile already initialized";
-    case BLE_STATUS_NULL_PARAM:
-        return "null param";
+    case BLE_STATUS_TIMEOUT:                     return "timeout";
+    case BLE_STATUS_PROFILE_ALREADY_INITIALIZED: return "profile already initialized";
+    case BLE_STATUS_NULL_PARAM:                  return "null param";
 
-    default:
-        return "Unknow error";
+    default: return "Unknow error";
     }
     return "";
 }
@@ -864,19 +805,12 @@ uint16_t _taskBleGetCharHandleFromAtt(bleAtt_t att)
 {
     switch (att)
     {
-    case BLE_ATT_LOCK_STATE:
-        return _taskBle.lockStateCharAppHandle;
-    case BLE_ATT_DOOR_STATE:
-        return _taskBle.doorStateCharAppHandle;
-    case BLE_ATT_OPEN_DOOR:
-        return _taskBle.openDoorCharAppHandle;
-    case BLE_ATT_BRIGHTNESS:
-        return _taskBle.brightnessCharAppHandle;
-    case BLE_ATT_BRIGHTNESS_TH:
-        return _taskBle.brightnessThCharAppHandle;
-
-    default:
-        break;
+    case BLE_ATT_LOCK_STATE:    return _taskBle.lockStateCharAppHandle;
+    case BLE_ATT_DOOR_STATE:    return _taskBle.doorStateCharAppHandle;
+    case BLE_ATT_OPEN_DOOR:     return _taskBle.openDoorCharAppHandle;
+    case BLE_ATT_BRIGHTNESS:    return _taskBle.brightnessCharAppHandle;
+    case BLE_ATT_BRIGHTNESS_TH: return _taskBle.brightnessThCharAppHandle;
+    default:                    break;
     }
     return 0xffff;
 }
