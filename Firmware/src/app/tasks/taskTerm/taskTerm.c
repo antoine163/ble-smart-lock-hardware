@@ -402,7 +402,10 @@ int _taskTermCmdBri(
     __attribute__((unused)) int argc,
     __attribute__((unused)) char *argv[])
 {
-    // Todo
+    float bri = boardGetBrightness();
+    int briInt = (int)bri;
+    int briFrac = (bri - (float)briInt) * 10;
+    boardPrintf("Brightness: %u.%u%%\r\n", briInt, briFrac);
     return EXIT_SUCCESS;
 }
 
