@@ -34,7 +34,7 @@
 // Implemented functions -------------------------------------------------------
 int main()
 {
-  boardInit();
+    boardInit();
     boardPrintf("\r\n ---- " VT100_TEXT_UNDERLINE "Ble Smart lock " PROJECT_VERSION VT100_COLOR_RESET " ---- \r\n");
     tasksStaticInit();
     tasksStaticCreate();

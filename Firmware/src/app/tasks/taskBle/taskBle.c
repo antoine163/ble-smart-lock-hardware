@@ -298,7 +298,7 @@ int taskBleSetPin(unsigned int pin)
     tBleStatus bleStatus = aci_gap_set_authentication_requirement(
         BONDING,
         MITM_PROTECTION_REQUIRED,
-        SC_IS_MANDATORY,
+        SC_IS_SUPPORTED,
         KEYPRESS_IS_NOT_SUPPORTED,
         7,  // Minimum encryption key size
         16, // Maximum encryption key size
@@ -543,11 +543,10 @@ tBleStatus _taskBleInitDevice()
         return bleStatus;
 
     // Set the proper security I/O authentication
-    // Todo récupéer le pin depui la flash et gera le changement de pin
     bleStatus = aci_gap_set_authentication_requirement(
         BONDING,
         MITM_PROTECTION_REQUIRED,
-        SC_IS_MANDATORY,
+        SC_IS_SUPPORTED,
         KEYPRESS_IS_NOT_SUPPORTED,
         7,  // Minimum encryption key size
         16, // Maximum encryption key size
