@@ -69,6 +69,7 @@ bool taskBleIsCurrent();
 void taskBlePauseRadio();
 void taskBleResumeRadio();
 unsigned int taskBleNextRadioTime_ms();
+int taskBleSetPin(unsigned int pin);
 
 void taskBleSetBondMode(bool enable);
 int taskBleClearAllPairing();

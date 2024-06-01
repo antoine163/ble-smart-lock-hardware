@@ -379,6 +379,9 @@ int taskAppSetPin(uint32_t pin)
     if (pin == _taskAppNvmData.pin)
         return 0;
 
+    if (taskBleSetPin(pin) != 0)
+        return -1;
+
     taskAppEventItem_t eventItem = {.event = _TASK_APP_EVENT_WRITE_NVM};
     memcpy((void *)&eventItem.nvmNewData,
            (const void *)&_taskAppNvmData,
@@ -386,6 +389,7 @@ int taskAppSetPin(uint32_t pin)
     eventItem.nvmNewData.pin = pin;
 
     xQueueSend(_taskApp.eventQueue, &eventItem, portMAX_DELAY);
+    
     return 0;
 }
 

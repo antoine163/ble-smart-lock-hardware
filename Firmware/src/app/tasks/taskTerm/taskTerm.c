@@ -337,7 +337,7 @@ int _taskTermCmdVersion(
     boardPrintf("%s - %s\r\n", PROJECT_VERSION, __DATE__);
     return 0;
 }
-volatile bool stop = false;
+
 int _taskTermCmdHelp(
     __attribute__((unused)) int argc,
     __attribute__((unused)) char *argv[])
@@ -382,18 +382,17 @@ int _taskTermCmdVerbose(int argc, char *argv[])
 int _taskTermCmdPin(int argc, char *argv[])
 {
     if (argc == 1)
-    {
-        boardPrintf("Pin:%u\r\n", taskAppGetPin());
-    }
+        boardPrintf("Pin: %06u\r\n", taskAppGetPin());
     else
     {
         unsigned int pin;
-        sscanf(argv[1], "%u", &pin);
-
-        if (taskAppSetPin(pin) < 0)
-            boardPrintf("Error: Pin must be within the range of 0 to 999999.\r\n");
+        int n = sscanf(argv[1], "%u", &pin);
+        if (n == 0)
+            boardPrintf("Error: Input must be a number !\r\n");
+        else if (taskAppSetPin(pin) < 0)
+            boardPrintf("Error: Pin must be 0-999999\r\n");
         else
-            boardPrintf("Success!\r\n");
+            boardPrintf("Pin: %06u\r\n", pin);
     }
 
     return EXIT_SUCCESS;

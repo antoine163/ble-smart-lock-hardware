@@ -293,6 +293,29 @@ unsigned int taskBleNextRadioTime_ms()
         HAL_VTimerGetCurrentTime_sysT32());
 }
 
+int taskBleSetPin(unsigned int pin)
+{
+    tBleStatus bleStatus = aci_gap_set_authentication_requirement(
+        BONDING,
+        MITM_PROTECTION_REQUIRED,
+        SC_IS_MANDATORY,
+        KEYPRESS_IS_NOT_SUPPORTED,
+        7,  // Minimum encryption key size
+        16, // Maximum encryption key size
+        USE_FIXED_PIN_FOR_PAIRING,
+        pin, // Fixed Pin
+        STATIC_RANDOM_ADDR);
+
+    if (bleStatus != BLE_STATUS_SUCCESS)
+    {
+        boardDgb("Ble: Failed to set PIN: %s: %s\r\n",
+                 _taskBleStatusToStr(bleStatus));
+        return -1;
+    }
+
+    return 0;
+}
+
 void taskBleSetBondMode(bool enable)
 {
     xSemaphoreTake(_taskBle.bleStackMutex, portMAX_DELAY);
