@@ -352,49 +352,67 @@ int _taskTermCmdHelp(
 
 int _taskTermCmdVerbose(int argc, char *argv[])
 {
-    if (argc == 2)
+    bool verbose = false;
+
+    if (argc == 1)
+        verbose = taskAppGetVerbose();
+    else if (argc == 2)
     {
         if ((strcasecmp("enable", argv[1]) == 0) ||
             (strcasecmp("1", argv[1]) == 0))
         {
+            verbose = true;
             taskAppSetVerbose(true);
-            boardPrintf("Enabled\r\n");
         }
         else if ((strcasecmp("disable", argv[1]) == 0) ||
                  (strcasecmp("0", argv[1]) == 0))
         {
+            verbose = true;
             taskAppSetVerbose(false);
-            boardPrintf("Disabled\r\n");
         }
         else
         {
             boardPrintf("Invalid argument. Use 'enable' or 'disable'\r\n");
+            return EXIT_FAILURE;
         }
     }
-    else if (argc == 1)
+    else
     {
-        boardPrintf("%s\r\n", taskAppGetVerbose() ? "Enabled" : "Disabled");
+        boardPrintf("Error: Invalid number of arguments!\r\n");
+        return EXIT_FAILURE;
     }
 
+    boardPrintf("%s\r\n", verbose ? "Enabled" : "Disabled");
     return EXIT_SUCCESS;
 }
 
 int _taskTermCmdPin(int argc, char *argv[])
 {
+    unsigned int pin;
+
     if (argc == 1)
-        boardPrintf("Pin: %06u\r\n", taskAppGetPin());
-    else
+        pin = taskAppGetPin();
+    else if (argc == 2)
     {
-        unsigned int pin;
         int n = sscanf(argv[1], "%u", &pin);
         if (n == 0)
-            boardPrintf("Error: Input must be a number !\r\n");
+        {
+            boardPrintf("Error: Input must be a number!\r\n");
+            return EXIT_FAILURE;
+        }
         else if (taskAppSetPin(pin) < 0)
+        {
             boardPrintf("Error: Pin must be 0-999999\r\n");
-        else
-            boardPrintf("Pin: %06u\r\n", pin);
+            return EXIT_FAILURE;
+        }
+    }
+    else
+    {
+        boardPrintf("Error: Invalid number of arguments!\r\n");
+        return EXIT_FAILURE;
     }
 
+    boardPrintf("Pin: %06u\r\n", pin);
     return EXIT_SUCCESS;
 }
 
@@ -402,18 +420,52 @@ int _taskTermCmdBri(
     __attribute__((unused)) int argc,
     __attribute__((unused)) char *argv[])
 {
-    float bri = boardGetBrightness();
-    int briInt = (int)bri;
-    int briFrac = (bri - (float)briInt) * 10;
+    float bri = boardGetBrightness() + 0.05; // 0.05 for round
+    unsigned int briInt = (int)bri;
+    unsigned int briFrac = (bri - (float)briInt) * 10;
     boardPrintf("Brightness: %u.%u%%\r\n", briInt, briFrac);
     return EXIT_SUCCESS;
 }
 
-int _taskTermCmdBriTh(
-    __attribute__((unused)) int argc,
-    __attribute__((unused)) char *argv[])
+int _taskTermCmdBriTh(int argc, char *argv[])
 {
-    // Todo
+    float briTh = 0;
+    if (argc == 1)
+        briTh = taskAppGetBrightnessTh();
+    else if (argc == 2)
+    {
+        // Tronc frac value at .x
+        char *dotptr = strrchr(argv[1], '.');
+        if ((dotptr != NULL) && (dotptr[1] != '\0'))
+            dotptr[2] = '\0';
+
+        unsigned int briThInt = 0;
+        unsigned int briThFrac = 0;
+        int n = sscanf(argv[1], "%u.%u", &briThInt, &briThFrac);
+        if ((n < 1) || (n > 2))
+        {
+            boardPrintf("Error: Invalid input format!\r\n");
+            return EXIT_FAILURE;
+        }
+
+        briTh = (float)briThInt + (float)briThFrac / 10.f;
+        if (taskAppSetBrightnessTh(briTh) != 0)
+        {
+            boardPrintf("Error: Brightness threshold must be 0.0%% to 100.0%%\r\n");
+            return EXIT_FAILURE;
+        }
+    }
+    else
+    {
+        boardPrintf("Error: Invalid number of arguments!\r\n");
+        return EXIT_FAILURE;
+    }
+
+    briTh += 0.05; // Round
+    unsigned int briInt = (int)briTh;
+    unsigned int briFrac = (briTh - (float)briInt) * 10;
+    boardPrintf("Brightness threshold: %u.%u%%\r\n", briInt, briFrac);
+
     return EXIT_SUCCESS;
 }
 

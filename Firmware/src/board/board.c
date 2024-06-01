@@ -303,6 +303,7 @@ float boardGetBrightness()
     float val = adc_convert_voltage(&_board.sensorAdc);
     _boardEnableIo(_board.lightColor != COLOR_OFF);
 
+    // Convert in %
     return 100.0f - val * 100.0f / 3.3f;
 }
 
