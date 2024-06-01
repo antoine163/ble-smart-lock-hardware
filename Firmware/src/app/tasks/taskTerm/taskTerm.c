@@ -139,7 +139,6 @@ static taskTermCmd_t _taskTermCmd[] = {
 // Implemented functions -------------------------------------------------------
 void taskTermCodeInit()
 {
-    boardDgbEnable(taskAppGetVerbose());
 }
 
 void taskTermCode(__attribute__((unused)) void *parameters)
@@ -351,16 +350,36 @@ int _taskTermCmdHelp(
     return EXIT_SUCCESS;
 }
 
-int _taskTermCmdVerbose(
-    __attribute__((unused)) int argc,
-    __attribute__((unused)) char *argv[])
+int _taskTermCmdVerbose(int argc, char *argv[])
 {
+    if (argc == 2)
+    {
+        if ((strcasecmp("enable", argv[1]) == 0) ||
+            (strcasecmp("1", argv[1]) == 0))
+        {
+            taskAppSetVerbose(true);
+            boardPrintf("Enabled\r\n");
+        }
+        else if ((strcasecmp("disable", argv[1]) == 0) ||
+                 (strcasecmp("0", argv[1]) == 0))
+        {
+            taskAppSetVerbose(false);
+            boardPrintf("Disabled\r\n");
+        }
+        else
+        {
+            boardPrintf("Invalid argument. Use 'enable' or 'disable'\r\n");
+        }
+    }
+    else if (argc == 1)
+    {
+        boardPrintf("%s\r\n", taskAppGetVerbose() ? "Enabled" : "Disabled");
+    }
+
     return EXIT_SUCCESS;
 }
 
-int _taskTermCmdPin(
-    __attribute__((unused)) int argc,
-    __attribute__((unused)) char *argv[])
+int _taskTermCmdPin(int argc, char *argv[])
 {
     if (argc == 1)
     {
@@ -384,6 +403,7 @@ int _taskTermCmdBri(
     __attribute__((unused)) int argc,
     __attribute__((unused)) char *argv[])
 {
+    // Todo
     return EXIT_SUCCESS;
 }
 
@@ -391,6 +411,7 @@ int _taskTermCmdBriTh(
     __attribute__((unused)) int argc,
     __attribute__((unused)) char *argv[])
 {
+    // Todo
     return EXIT_SUCCESS;
 }
 
@@ -398,6 +419,7 @@ int _taskTermCmdConfig(
     __attribute__((unused)) int argc,
     __attribute__((unused)) char *argv[])
 {
+    // Todo
     return EXIT_SUCCESS;
 }
 
@@ -405,6 +427,7 @@ int _taskTermCmdBond(
     __attribute__((unused)) int argc,
     __attribute__((unused)) char *argv[])
 {
+    // Todo
     return EXIT_SUCCESS;
 }
 
@@ -414,7 +437,7 @@ int _taskTermCmdBondClear(
 {
     taskBleClearAllPairing();
     boardPrintf("Clearing bonded devices.\r\n");
-    vTaskDelay(400 / portTICK_PERIOD_MS); // wait to reset and clear
+    vTaskDelay(400 / portTICK_PERIOD_MS); // wait to clear bonded devices.
     boardReset();
 
     return EXIT_SUCCESS;
@@ -427,7 +450,7 @@ int _taskTermCmdReset(
     taskAppResetConfig();
     taskBleClearAllPairing();
     boardPrintf("Reseting config and clearing bonded devices.\r\n");
-    vTaskDelay(400 / portTICK_PERIOD_MS); // wait to reset and clear
+    vTaskDelay(400 / portTICK_PERIOD_MS); // Wait to write default config and clear bonded devices.
     boardReset();
 
     return EXIT_SUCCESS;

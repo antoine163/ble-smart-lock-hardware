@@ -189,6 +189,9 @@ void taskAppCodeInit()
     _taskApp.ticksToExitBond = portMAX_DELAY;
 
     _taskAppNvmInit();
+
+    // Enable or not debug log
+    boardDgbEnable(taskAppGetVerbose());
 }
 
 void taskAppCode(__attribute__((unused)) void *parameters)
@@ -306,6 +309,25 @@ void taskAppCode(__attribute__((unused)) void *parameters)
     }
 }
 
+int taskAppEnableVerbose(bool enable)
+{
+    if (!_TASK_APP_CHECK_VERBOSE(enable))
+        return -1;
+
+    if (enable == _taskAppNvmData.verbose)
+        return 0;
+
+    taskAppEventItem_t eventItem = {.event = _TASK_APP_EVENT_WRITE_NVM};
+    memcpy((void *)&eventItem.nvmNewData,
+           (const void *)&_taskAppNvmData,
+           sizeof(taskAppNvmData_t));
+    eventItem.nvmNewData.verbose = enable;
+
+    xQueueSend(_taskApp.eventQueue, &eventItem, portMAX_DELAY);
+
+    return 0;
+}
+
 int taskAppResetConfig()
 {
     taskAppEventItem_t eventItem = {.event = _TASK_APP_EVENT_WRITE_NVM};
@@ -387,6 +409,8 @@ int taskAppSetVerbose(bool verbose)
     eventItem.nvmNewData.verbose = verbose;
 
     xQueueSend(_taskApp.eventQueue, &eventItem, portMAX_DELAY);
+
+    boardDgbEnable(verbose);
     return 0;
 }
 

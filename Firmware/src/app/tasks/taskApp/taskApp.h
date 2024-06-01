@@ -41,6 +41,7 @@
 void taskAppCodeInit();
 void taskAppCode(void *parameters);
 
+int taskAppEnableVerbose(bool enable);
 int taskAppResetConfig();
 
 float taskAppGetBrightnessTh();
