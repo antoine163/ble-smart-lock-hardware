@@ -73,8 +73,8 @@ int _taskTermCmdPin(int argc, char *argv[]);
 int _taskTermCmdBri(int argc, char *argv[]);
 int _taskTermCmdBriTh(int argc, char *argv[]);
 int _taskTermCmdConfig(int argc, char *argv[]);
-int _taskTermCmdBond(int argc, char *argv[]);
-int _taskTermCmdBondClear(int argc, char *argv[]);
+int _taskTermCmdBonded(int argc, char *argv[]);
+int _taskTermCmdBondedClear(int argc, char *argv[]);
 int _taskTermCmdReset(int argc, char *argv[]);
 int _taskTermCmdTop(int argc, char *argv[]);
 
@@ -116,14 +116,14 @@ static taskTermCmd_t _taskTermCmd[] = {
         .func = _taskTermCmdConfig,
     },
     {
-        .name = "bond",
+        .name = "bonded",
         .help = "Display the list of paired devices.",
-        .func = _taskTermCmdBond,
+        .func = _taskTermCmdBonded,
     },
     {
-        .name = "bond-clear",
+        .name = "bonded-clear",
         .help = "Remove all paired devices (or hold the bond button for more than 3 seconds).",
-        .func = _taskTermCmdBondClear,
+        .func = _taskTermCmdBondedClear,
     },
     {
         .name = "reset",
@@ -482,15 +482,37 @@ int _taskTermCmdConfig(int argc, char *argv[])
     return EXIT_FAILURE;
 }
 
-int _taskTermCmdBond(
+int _taskTermCmdBonded(
     __attribute__((unused)) int argc,
     __attribute__((unused)) char *argv[])
 {
-    // Todo
+    Bonded_Device_Entry_t devices[MAX_NUM_BONDED_DEVICES];
+    int n = taskBleGetBonded(devices);
+
+    for (int i = 0; i < n; i++)
+    {
+        boardPrintf("       Address    Type\r\n");
+        boardPrintf("0x%x%x%x%x%x%x    ",
+                    devices[i].Address[5],
+                    devices[i].Address[4],
+                    devices[i].Address[3],
+                    devices[i].Address[2],
+                    devices[i].Address[1],
+                    devices[i].Address[0]);
+
+        switch (devices[i].Address_Type)
+        {
+        case 0x00: boardPrintf("Public"); break;
+        case 0x01: boardPrintf("Random"); break;
+        default:   break;
+        }
+        boardPrintf("\r\n");
+    }
+
     return EXIT_SUCCESS;
 }
 
-int _taskTermCmdBondClear(
+int _taskTermCmdBondedClear(
     __attribute__((unused)) int argc,
     __attribute__((unused)) char *argv[])
 {

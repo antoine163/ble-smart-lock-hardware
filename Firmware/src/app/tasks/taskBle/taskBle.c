@@ -324,6 +324,26 @@ void taskBleSetBondMode(bool enable)
     xSemaphoreGive(_taskBle.bleStackMutex);
 }
 
+int taskBleGetBonded(Bonded_Device_Entry_t *bondedDevices)
+{
+    int ret = -1;
+    xSemaphoreTake(_taskBle.bleStackMutex, portMAX_DELAY);
+
+    uint8_t bondedLen = 0;
+    tBleStatus bleStatus = aci_gap_get_bonded_devices(&bondedLen, bondedDevices);
+    if (bleStatus != BLE_STATUS_SUCCESS)
+    {
+        boardDgb("Ble: Failed to get bonded device: %s\r\n",
+                 _taskBleStatusToStr(bleStatus));
+    }
+    else
+        ret = (int)bondedLen;
+
+    xSemaphoreGive(_taskBle.bleStackMutex);
+
+    return ret;
+}
+
 int taskBleClearAllPairing()
 {
     int n = -1;

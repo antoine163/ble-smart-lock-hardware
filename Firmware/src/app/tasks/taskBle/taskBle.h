@@ -33,6 +33,8 @@
 #define TASK_BLE_H
 
 // Include ---------------------------------------------------------------------
+#include "bluenrg1_api.h"
+#include "sm.h"
 #include <stddef.h>
 
 // Enum ------------------------------------------------------------------------
@@ -42,12 +44,13 @@
  *
  * This enum defines the various BLE attribute types used in the application.
  */
-typedef enum {
-    BLE_ATT_LOCK_STATE,      /**< Attribute representing the lock state (lock/unlock)*/
-    BLE_ATT_DOOR_STATE,      /**< Attribute representing the door state (open/close) */
-    BLE_ATT_OPEN_DOOR,       /**< Attribute representing the action to open the door */
-    BLE_ATT_BRIGHTNESS,      /**< Attribute representing the brightness level */
-    BLE_ATT_BRIGHTNESS_TH    /**< Attribute representing the brightness threshold */
+typedef enum
+{
+    BLE_ATT_LOCK_STATE,   /**< Attribute representing the lock state (lock/unlock)*/
+    BLE_ATT_DOOR_STATE,   /**< Attribute representing the door state (open/close) */
+    BLE_ATT_OPEN_DOOR,    /**< Attribute representing the action to open the door */
+    BLE_ATT_BRIGHTNESS,   /**< Attribute representing the brightness level */
+    BLE_ATT_BRIGHTNESS_TH /**< Attribute representing the brightness threshold */
 } bleAtt_t;
 
 /**
@@ -55,7 +58,8 @@ typedef enum {
  *
  * This enum defines the various events that can be sent by the BLE task.
  */
-typedef enum {
+typedef enum
+{
     BLE_EVENT_ERR,          /**< Event indicating an error occurred */
     BLE_EVENT_CONNECTED,    /**< Event indicating a successful connection */
     BLE_EVENT_DISCONNECTED, /**< Event indicating a disconnection */
@@ -72,12 +76,12 @@ unsigned int taskBleNextRadioTime_ms();
 int taskBleSetPin(unsigned int pin);
 
 void taskBleSetBondMode(bool enable);
+int taskBleGetBonded(Bonded_Device_Entry_t *bondedDevices);
 int taskBleClearAllPairing();
 int taskBleUpdateAtt(bleAtt_t att, const void *buf, size_t nbyte);
 
 // Function called by the BLE task to send an event to the App task
 // This function is implemented in the App task
 void taskBleSendEvent(bleEvent_t event);
-
 
 #endif // TASK_BLE_H
