@@ -112,7 +112,7 @@ static taskTermCmd_t _taskTermCmd[] = {
     },
     {
         .name = "config",
-        .help = "Show all configuration).",
+        .help = "Show all configuration.",
         .func = _taskTermCmdConfig,
     },
     {
@@ -382,7 +382,7 @@ int _taskTermCmdVerbose(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    boardPrintf("%s\r\n", verbose ? "Enabled" : "Disabled");
+    boardPrintf("Verbose: %s\r\n", verbose ? "Enabled" : "Disabled");
     return EXIT_SUCCESS;
 }
 
@@ -469,12 +469,17 @@ int _taskTermCmdBriTh(int argc, char *argv[])
     return EXIT_SUCCESS;
 }
 
-int _taskTermCmdConfig(
-    __attribute__((unused)) int argc,
-    __attribute__((unused)) char *argv[])
+int _taskTermCmdConfig(int argc, char *argv[])
 {
-    // Todo
-    return EXIT_SUCCESS;
+    if (argc == 1)
+    {
+        _taskTermCmdVerbose(1, argv);
+        _taskTermCmdPin(1, argv);
+        _taskTermCmdBriTh(1, argv);
+        return EXIT_SUCCESS;
+    }
+
+    return EXIT_FAILURE;
 }
 
 int _taskTermCmdBond(
