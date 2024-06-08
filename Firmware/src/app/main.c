@@ -24,6 +24,7 @@
 
 // Includes --------------------------------------------------------------------
 #include "board.h"
+#include "itConfig.h"
 #include "tasks/tasks.h"
 
 #include "vt100.h"
@@ -39,5 +40,13 @@ int main()
     tasksStaticInit();
     tasksStaticCreate();
     vTaskStartScheduler();
+    for (;;);
+
+    return 0;
+}
+
+void HARD_FAULD_IT_HANDLER()
+{
+    boardLedOn();
     for (;;);
 }

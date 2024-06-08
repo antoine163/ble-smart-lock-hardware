@@ -34,6 +34,7 @@
 
 // Define ----------------------------------------------------------------------
 #define BLE_IT_HANDLER Blue_Handler
+#define HARD_FAULD_IT_HANDLER HardFault_Handler
 
 #define UART_IT_HANDLER UART_Handler
 #define UART_IT_PRIORITY LOW_PRIORITY
