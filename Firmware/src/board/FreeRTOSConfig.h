@@ -57,7 +57,7 @@
 #define configCPU_CLOCK_HZ                        (SYSCLK_FREQ)
 #define configTICK_RATE_HZ                        ((TickType_t)50)
 #define configMAX_PRIORITIES                      (4)
-#define configMINIMAL_STACK_SIZE                  ((unsigned short)128)
+#define configMINIMAL_STACK_SIZE                  ((unsigned short)256)
 #define configTOTAL_HEAP_SIZE                     ((size_t)(0))
 #define configMAX_TASK_NAME_LEN                   (16)
 #define configUSE_TRACE_FACILITY                  1
@@ -72,7 +72,7 @@
 #define configUSE_COUNTING_SEMAPHORES             1
 #define configGENERATE_RUN_TIME_STATS             1
 #define configUSE_TICKLESS_IDLE                   1
-#define configEXPECTED_IDLE_TIME_BEFORE_SLEEP     2 // 2 ms
+#define configEXPECTED_IDLE_TIME_BEFORE_SLEEP     2 // 2 tick - 40 ms 
 #define configSUPPORT_STATIC_ALLOCATION           1
 #define configKERNEL_PROVIDED_STATIC_MEMORY       1
 #define configRECORD_STACK_HIGH_ADDRESS           1
@@ -123,6 +123,5 @@ extern uint32_t HAL_VTimerGetCurrentTime_sysT32(void);
     (HAL_VTimerGetCurrentTime_sysT32() - lastSystemState2Time)
 
 /*-----------------------------------------------------------*/
-
 
 #endif /* FREERTOS_CONFIG_H */

@@ -55,11 +55,11 @@
  * @p parameters -> pvParametersde
  * @p priority -> uxPriority
  */
-#define TASKS_STATIC_LIST                                                                         \
-    STATIC_TASK(taskAppCode, "App", configMINIMAL_STACK_SIZE * 2, NULL, tskIDLE_PRIORITY + 2)     \
-    STATIC_TASK(taskTermCode, "Term", configMINIMAL_STACK_SIZE * 3, NULL, tskIDLE_PRIORITY + 1)   \
-    STATIC_TASK(taskLightCode, "Light", configMINIMAL_STACK_SIZE * 2, NULL, tskIDLE_PRIORITY + 1) \
-    STATIC_TASK(taskBleCode, "Ble", configMINIMAL_STACK_SIZE * 3, NULL, tskIDLE_PRIORITY + 3)
+#define TASKS_STATIC_LIST                                                                             \
+    STATIC_TASK(taskAppCode, "App", configMINIMAL_STACK_SIZE / 2 * 2, NULL, tskIDLE_PRIORITY + 2)     \
+    STATIC_TASK(taskTermCode, "Term", configMINIMAL_STACK_SIZE / 2 * 3, NULL, tskIDLE_PRIORITY + 1)   \
+    STATIC_TASK(taskLightCode, "Light", configMINIMAL_STACK_SIZE / 2 * 2, NULL, tskIDLE_PRIORITY + 1) \
+    STATIC_TASK(taskBleCode, "Ble", configMINIMAL_STACK_SIZE / 2 * 3, NULL, tskIDLE_PRIORITY + 3)
 
 // Prototype functions ---------------------------------------------------------
 
