@@ -52,7 +52,10 @@ int uart_init(uart_t *dev,
     fifo_init(&dev->fifoTx, bufTx, sizeBufTx);
     fifo_init(&dev->fifoRx, bufRx, sizeBufRx);
 
-    dev->fifoRxNoEmptySem = xSemaphoreCreateBinaryStatic(&dev->fifoRxNoEmptySemBuffer);
+    dev->txCompleteSem = xSemaphoreCreateBinaryStatic(&dev->txCompleteSemBuffer);
+    dev->rxAvailableSem = xSemaphoreCreateBinaryStatic(&dev->rxAvailableSemBuffer);
+
+    xSemaphoreTake(dev->txCompleteSem, 0);
 
     // Enable UART clk
     SysCtrl_PeripheralClockCmd(CLOCK_PERIPH_UART, ENABLE);
@@ -79,7 +82,8 @@ int uart_deinit(uart_t *dev)
     UART_DeInit();
     SysCtrl_PeripheralClockCmd(CLOCK_PERIPH_UART, DISABLE);
 
-    vSemaphoreDelete(dev->fifoRxNoEmptySem);
+    vSemaphoreDelete(dev->txCompleteSem);
+    vSemaphoreDelete(dev->rxAvailableSem);
 
     _usart_dev = NULL;
     dev->periph = NULL;
@@ -137,6 +141,7 @@ int uart_config(uart_t *dev,
 
     // Enable RX FIFO Full Interrupt
     UART_RxFifoIrqLevelConfig(FIFO_LEV_3_4);
+    UART_TxFifoIrqLevelConfig(FIFO_LEV_1_64);
     UART_ITConfig(UART_IT_RX, ENABLE);
 
     // Enable UART
@@ -153,9 +158,14 @@ int uart_write(uart_t *dev, void const *buf, unsigned int nbyte)
     if (nbyte == 0)
         return 0;
 
-    // Disable and clean Tx FIFO empty interrupt
-    UART_ITConfig(UART_IT_TXFE, DISABLE);
-    UART_ClearITPendingBit(UART_IT_TXFE);
+    // Disable Tx interrupt
+    UART_ITConfig(UART_IT_TX | UART_IT_TXFE, DISABLE);
+
+    // Start TX, so the transfer is not complete
+    xSemaphoreTake(dev->txCompleteSem, 0);
+
+    // Clean Tx interrupt
+    UART_ClearITPendingBit(UART_IT_TX | UART_IT_TXFE);
 
     // Transfer data of fifoTx to Uart Fifo
     while ((UART_GetFlagStatus(UART_FLAG_TXFF) == RESET) &&
@@ -181,11 +191,35 @@ int uart_write(uart_t *dev, void const *buf, unsigned int nbyte)
     // Transfer remaining data of buf to fifoTx
     n += fifo_push(&dev->fifoTx, (uint8_t *)buf + n, nbyte - n);
 
-    // Don't enable UART Tx FiFo empty interrupt if no more byte to send.
-    if (!fifo_isEmpty(&dev->fifoTx))
-        UART_ITConfig(UART_IT_TXFE, ENABLE);
+    // Enable Tx interrupt
+    if (fifo_isEmpty(&dev->fifoTx))
+        UART_ITConfig(UART_IT_TXFE, ENABLE); // Tx complet
+    else
+        UART_ITConfig(UART_IT_TX, ENABLE); // Tx UART FiFo almost empty
 
     return n;
+}
+
+int uart_waitWrite(uart_t *dev, unsigned int timeout_ms)
+{
+    int ret = 0;
+    TickType_t tickOut = portMAX_DELAY;
+    if (timeout_ms != UART_MAX_TIMEOUT)
+        tickOut = pdMS_TO_TICKS(timeout_ms);
+
+    // Wait complet transfer
+    if (xSemaphoreTake(dev->txCompleteSem, tickOut) == pdTRUE)
+    {
+        vPortEnterCritical();
+        if (UART_GetFlagStatus(UART_FLAG_BUSY) == RESET)
+        {
+            xSemaphoreGive(dev->txCompleteSem);
+            ret = 1;
+        }
+        vPortExitCritical();
+    }
+
+    return ret;
 }
 
 int uart_read(uart_t *dev, void *buf, unsigned int nbyte)
@@ -219,7 +253,7 @@ int uart_read(uart_t *dev, void *buf, unsigned int nbyte)
     }
 
     if (fifo_isEmpty(&dev->fifoRx))
-        xSemaphoreTake(dev->fifoRxNoEmptySem, 0);
+        xSemaphoreTake(dev->rxAvailableSem, 0);
 
     UART_ITConfig(UART_IT_RX, ENABLE);
 
@@ -230,14 +264,12 @@ int uart_waitRead(uart_t *dev, unsigned int timeout_ms)
 {
     TickType_t tickOut = portMAX_DELAY;
     if (timeout_ms != UART_MAX_TIMEOUT)
-        tickOut = timeout_ms / portTICK_PERIOD_MS;
+        tickOut = pdMS_TO_TICKS(timeout_ms);
 
-    // Attendre que la fifo Rx ne sois pas vide
+    // Wait available byte in Rx fifo
     UART_RxFifoIrqLevelConfig(FIFO_LEV_1_64);
-    if (xSemaphoreTake(dev->fifoRxNoEmptySem, tickOut) == pdTRUE)
-        // Redonnez le sémaphore car on lie rien ici, la fifo rx n'est donc pas
-        // vide.
-        xSemaphoreGive(dev->fifoRxNoEmptySem);
+    if (xSemaphoreTake(dev->rxAvailableSem, tickOut) == pdTRUE)
+        xSemaphoreGive(dev->rxAvailableSem);
     UART_RxFifoIrqLevelConfig(FIFO_LEV_3_4);
 
     return fifo_used(&dev->fifoRx);
@@ -249,11 +281,11 @@ static inline void _uartIsrHandler(uart_t *dev)
     BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 
     // -- Manage transmit data --
-    // The UART Tx FiFo is empty and the interrupt is enable ?
-    if ((UART_GetITStatus(UART_IT_TXFE) == SET) &&
-        (READ_BIT(UART->IMSC, UART_IT_TXFE) != 0))
+    // The UART Tx FiFo is almost empty and the interrupt is enable ?
+    if ((UART_GetITStatus(UART_IT_TX) == SET) &&
+        (READ_BIT(UART->IMSC, UART_IT_TX) != 0))
     {
-        UART_ClearITPendingBit(UART_IT_TXFE);
+        UART_ClearITPendingBit(UART_IT_TX);
 
         // Transfer data Fifo to Uart Fifo
         while ((UART_GetFlagStatus(UART_FLAG_TXFF) == RESET) &&
@@ -266,7 +298,21 @@ static inline void _uartIsrHandler(uart_t *dev)
 
         // Disable UART Tx FiFo empty interrupt if the data Tx FiFo is empty.
         if (fifo_isEmpty(&dev->fifoTx))
-            UART_ITConfig(UART_IT_TXFE, DISABLE);
+        {
+            UART_ITConfig(UART_IT_TX, DISABLE);
+            UART_ITConfig(UART_IT_TXFE, ENABLE);
+        }
+    }
+
+    // The UART Tx FiFo is empty and the interrupt is enable ?
+    if ((UART_GetITStatus(UART_IT_TXFE) == SET) &&
+        (READ_BIT(UART->IMSC, UART_IT_TXFE) != 0))
+    {
+        UART_ClearITPendingBit(UART_IT_TXFE);
+        UART_ITConfig(UART_IT_TXFE, DISABLE);
+
+        // The transfer is complet
+        xSemaphoreGiveFromISR(dev->txCompleteSem, &xHigherPriorityTaskWoken);
     }
 
     // -- Manage receive data --
@@ -283,7 +329,8 @@ static inline void _uartIsrHandler(uart_t *dev)
             FIFO_PUSH_BYTE((&dev->fifoRx), (uint8_t)byte);
         }
 
-        xSemaphoreGiveFromISR(dev->fifoRxNoEmptySem, &xHigherPriorityTaskWoken);
+        // Data available in Rx FiFo
+        xSemaphoreGiveFromISR(dev->rxAvailableSem, &xHigherPriorityTaskWoken);
     }
 
     portYIELD_FROM_ISR(xHigherPriorityTaskWoken);

@@ -91,8 +91,10 @@ typedef struct
     fifo_t fifoRx;
     fifo_t fifoTx;
 
-    SemaphoreHandle_t fifoRxNoEmptySem;
-    StaticSemaphore_t fifoRxNoEmptySemBuffer;
+    SemaphoreHandle_t txCompleteSem;
+    StaticSemaphore_t txCompleteSemBuffer;
+    SemaphoreHandle_t rxAvailableSem;
+    StaticSemaphore_t rxAvailableSemBuffer;
 } uart_t;
 
 // Prototype functions ---------------------------------------------------------
@@ -107,6 +109,7 @@ int uart_config(uart_t *dev,
                 uart_parity_t parity,
                 uart_stopbit_t stopbit);
 int uart_write(uart_t *dev, void const *buf, unsigned int nbyte);
+int uart_waitWrite(uart_t *dev, unsigned int timeout_ms);
 int uart_read(uart_t *dev, void *buf, unsigned int nbyte);
 int uart_waitRead(uart_t *dev, unsigned int timeout_ms);
 
