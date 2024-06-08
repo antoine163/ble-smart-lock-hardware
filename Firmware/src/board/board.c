@@ -27,6 +27,7 @@
 
 #include "BlueNRG1_sysCtrl.h"
 #include "misc.h"
+#include "sleep.h"
 
 #include "itConfig.h"
 
@@ -38,6 +39,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "freertos_ble.h"
 #include <FreeRTOS.h>
 #include <semphr.h>
 
@@ -108,6 +110,14 @@ void boardInit()
     _boardInitAdc();
 
     // Todo wdg
+
+    // Wakeup Mask, Wakeup when
+    // - Rx Uart pin is low
+    // - Opened pis is hight
+    BlueNRG_SetWakeupMask(
+        WAKEUP_IO11 | WAKEUP_IO12,
+        WAKEUP_IOx_LOW << WAKEUP_IO11_SHIFT_MASK |
+        WAKEUP_IOx_HIGH << WAKEUP_IO12_SHIFT_MASK);
 }
 
 void boardReset()
@@ -512,4 +522,29 @@ void GPIO_IT_HANDLER()
             &xHigherPriorityTaskWoken);
         portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
     }
+}
+
+// Note: App_SleepMode_Check run in IDLE task
+SleepModes App_SleepMode_Check(__attribute__((unused)) SleepModes sleepMode)
+{
+#ifdef DEBUG
+    // Do not enter deep sleep in debug to keep enable the SWD.
+    return SLEEPMODE_CPU_HALT;
+#else
+    // Do not enter deep sleep until the first 3s.
+    // To allow an easier connection with the SWD.
+    if (xTaskGetTickCount() < pdMS_TO_TICKS(3000))
+        return SLEEPMODE_CPU_HALT;
+
+    // Do not enter deep sleep until Tx uart is not complet.
+    if (uart_waitWrite(&_board.serial, 0) == 0)
+        return SLEEPMODE_CPU_HALT;
+
+    // Do not enter deep sleep while there is door is open.
+    if (boardIsOpen() == true)
+        return SLEEPMODE_CPU_HALT;
+
+    // Allow enter deep sleep.
+    return SLEEPMODE_NOTIMER;
+#endif
 }
