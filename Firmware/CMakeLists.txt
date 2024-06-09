@@ -160,3 +160,10 @@ add_custom_target(load
     ${CMAKE_PROJECT_NAME}.elf
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )
+# Run gdb with to flash
+add_custom_target(flash
+    DEPENDS ${CMAKE_PROJECT_NAME}.elf
+    COMMAND openocd -d0 -f ${CMAKE_SOURCE_DIR}/tools/openocd/bluenrg-2.cfg
+     -c "program ${CMAKE_PROJECT_NAME}.elf verify reset exit; shutdown"
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+)
