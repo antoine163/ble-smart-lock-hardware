@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.5)
 # Define projects
 # ##############################################################################
 project(ble_smart_lock
-    VERSION 1.0.0
+    VERSION 0.0.0
     DESCRIPTION "Bluetooth LE Smart Lock"
     HOMEPAGE_URL "https://github.com/antoine163/ble-smart-lock"
     LANGUAGES C ASM)
@@ -131,6 +131,12 @@ add_custom_target(disassemble
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )
 
+# Release install hex file
+install(
+    FILES ${CMAKE_BINARY_DIR}/${CMAKE_PROJECT_NAME}.hex
+    DESTINATION ${CMAKE_SOURCE_DIR}/release
+    RENAME ${CMAKE_PROJECT_NAME}_${MODEL_BLUENRG}_${VERSION}.hex)
+
 # Configure gdb scripts
 set(TARGET_NAME ${CMAKE_PROJECT_NAME}.elf)
 set(OCD_SCRIPT ${CMAKE_SOURCE_DIR}/tools/openocd/bluenrg-2.cfg)
@@ -160,10 +166,11 @@ add_custom_target(load
     ${CMAKE_PROJECT_NAME}.elf
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )
-# Run gdb with to flash
+
+# Flash with openocd
 add_custom_target(flash
     DEPENDS ${CMAKE_PROJECT_NAME}.elf
     COMMAND openocd -d0 -f ${CMAKE_SOURCE_DIR}/tools/openocd/bluenrg-2.cfg
-     -c "program ${CMAKE_PROJECT_NAME}.elf verify reset exit; shutdown"
+    -c "program ${CMAKE_PROJECT_NAME}.elf verify reset exit; shutdown"
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )
