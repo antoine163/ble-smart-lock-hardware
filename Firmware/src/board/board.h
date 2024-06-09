@@ -82,6 +82,7 @@ bool boardIsLocked();
 
 void boardOpen();
 bool boardIsOpen();
+void boardOpenItSetLevel(bool low);
 
 // Function called by the ISR board to send an event to the App task
 // This function is implemented in the App task

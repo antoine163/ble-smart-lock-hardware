@@ -203,13 +203,9 @@ void taskAppCode(__attribute__((unused)) void *parameters)
                      (const void *)&_taskAppNvmData.brightnessTh,
                      sizeof(_taskAppNvmData.brightnessTh));
 
-    // Door is open ?
-    if (boardIsOpen() == true)
-    {
-        _TASK_APP_FLAG_SET(OPENED);
-        _taskAppUpdateLight();
-    }
-
+    // Enable level irruption for open/close door state
+    boardOpenItSetLevel( true );
+    
     while (1)
     {
         // Get next timeout
@@ -389,7 +385,7 @@ int taskAppSetPin(uint32_t pin)
     eventItem.nvmNewData.pin = pin;
 
     xQueueSend(_taskApp.eventQueue, &eventItem, portMAX_DELAY);
-    
+
     return 0;
 }
 
@@ -683,10 +679,14 @@ int _taskAppNvmInit()
 void boardSendEventFromISR(boardEvent_t event,
                            BaseType_t *pxHigherPriorityTaskWoken)
 {
-    taskAppEventItem_t eventItem = {
-        .event = _TASK_APP_EVENT_BOARD,
-        .boardEvent = event};
-    xQueueSendFromISR(_taskApp.eventQueue, &eventItem, pxHigherPriorityTaskWoken);
+    if (_taskApp.eventQueue != NULL)
+    {
+        taskAppEventItem_t eventItem = {
+            .event = _TASK_APP_EVENT_BOARD,
+            .boardEvent = event};
+        xQueueSendFromISR(_taskApp.eventQueue, &eventItem,
+                          pxHigherPriorityTaskWoken);
+    }
 }
 
 // Warning: this function is run in task BLE

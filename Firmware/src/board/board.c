@@ -111,13 +111,9 @@ void boardInit()
 
     // Todo wdg
 
-    // Wakeup Mask, Wakeup when
-    // - Rx Uart pin is low
-    // - Opened pis is hight
+    // Set wakeup Mask to keep wakeup while the opened pin is hight (dio12).
     BlueNRG_SetWakeupMask(
-        WAKEUP_IO11 | WAKEUP_IO12,
-        WAKEUP_IOx_LOW << WAKEUP_IO11_SHIFT_MASK |
-        WAKEUP_IOx_HIGH << WAKEUP_IO12_SHIFT_MASK);
+        WAKEUP_IO12, WAKEUP_IOx_HIGH << WAKEUP_IO12_SHIFT_MASK);
 }
 
 void boardReset()
@@ -372,6 +368,17 @@ bool boardIsOpen()
     return (GPIO_ReadBit(OPENED_PIN) == Bit_SET) ? true : false;
 }
 
+void boardOpenItSetLevel(bool open)
+{
+    // Re-Configure door status (open/close) Interrupt
+    GPIO_EXTIConfigType GPIO_EXTIStructure = {
+        .GPIO_Pin = OPENED_PIN,
+        .GPIO_IrqSense = GPIO_IrqSense_Level,
+        .GPIO_Event = open ? GPIO_Event_High : GPIO_Event_Low
+    };
+    GPIO_EXTIConfig(&GPIO_EXTIStructure);
+}
+
 // Implemented static functions ------------------------------------------------
 
 void _boardInitGpio()
@@ -438,7 +445,7 @@ void _boardInitGpio()
 
     // ---- GPIO Interrupt section ----
 
-    // Eanble GPIO Interrupt
+    // Enable GPIO Interrupt
     NVIC_InitType nvicConfig = {
         .NVIC_IRQChannel = GPIO_IRQn,
         .NVIC_IRQChannelPreemptionPriority = GPIO_IT_PRIORITY,
@@ -501,7 +508,7 @@ void GPIO_IT_HANDLER()
     if (GPIO_GetITPendingBit(BOND_PIN) == SET)
     {
         GPIO_ClearITPendingBit(BOND_PIN);
-
+        
         // Send event to App task
         BaseType_t xHigherPriorityTaskWoken;
         boardSendEventFromISR(
@@ -513,6 +520,7 @@ void GPIO_IT_HANDLER()
     // Door state (open/close)
     if (GPIO_GetITPendingBit(OPENED_PIN) == SET)
     {
+        boardOpenItSetLevel(!boardIsOpen());
         GPIO_ClearITPendingBit(OPENED_PIN);
 
         // Send event to App task
@@ -542,6 +550,10 @@ SleepModes App_SleepMode_Check(__attribute__((unused)) SleepModes sleepMode)
 
     // Do not enter deep sleep while there is door is open.
     if (boardIsOpen() == true)
+        return SLEEPMODE_CPU_HALT;
+
+    // Do not enter deep sleep while there is the light in not off.
+    if (_board.lightColor != COLOR_OFF)
         return SLEEPMODE_CPU_HALT;
 
     // Allow enter deep sleep.
