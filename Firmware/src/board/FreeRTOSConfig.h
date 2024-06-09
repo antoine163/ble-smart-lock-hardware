@@ -72,7 +72,7 @@
 #define configUSE_COUNTING_SEMAPHORES             1
 #define configGENERATE_RUN_TIME_STATS             1
 #define configUSE_TICKLESS_IDLE                   1
-#define configEXPECTED_IDLE_TIME_BEFORE_SLEEP     150 // 150 tick - 3000 ms 
+#define configEXPECTED_IDLE_TIME_BEFORE_SLEEP     2 // 2 tick - 40 ms 
 #define configSUPPORT_STATIC_ALLOCATION           1
 #define configKERNEL_PROVIDED_STATIC_MEMORY       1
 #define configRECORD_STACK_HIGH_ADDRESS           1

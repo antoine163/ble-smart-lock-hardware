@@ -14,6 +14,7 @@ target_sources(device PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/bluenrg-2/BlueNRG1_Periph_Driver/src/BlueNRG1_uart.c
     ${CMAKE_CURRENT_SOURCE_DIR}/bluenrg-2/BlueNRG1_Periph_Driver/src/BlueNRG1_mft.c
     ${CMAKE_CURRENT_SOURCE_DIR}/bluenrg-2/BlueNRG1_Periph_Driver/src/BlueNRG1_adc.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/bluenrg-2/BlueNRG1_Periph_Driver/src/BlueNRG1_wdg.c
     ${CMAKE_CURRENT_SOURCE_DIR}/bluenrg-2/BlueNRG1_Periph_Driver/src/misc.c
 
     # Bluetooth_LE stubes source

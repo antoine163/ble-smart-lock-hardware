@@ -26,6 +26,7 @@
 #include "board.h"
 
 #include "BlueNRG1_sysCtrl.h"
+#include "BlueNRG1_wdg.h"
 #include "misc.h"
 #include "sleep.h"
 
@@ -48,6 +49,11 @@
 // Define ----------------------------------------------------------------------
 #define _BOARD_UART_RX_FIFO_SIZE 32
 #define _BOARD_UART_TX_FIFO_SIZE 1024
+
+/** Set the watchdog reload interval in [s] = (WDT_LOAD + 3) / (clock frequency in Hz). */
+#define _BOARD_RC32K_FREQ       32768
+#define _BOARD_RELOAD_TIME(sec) ((sec * _BOARD_RC32K_FREQ) - 3)
+#define _BOARD_WDG_TIME         15
 
 // Struct ----------------------------------------------------------------------
 typedef struct
@@ -79,6 +85,7 @@ static void _boardInitGpio();
 static void _boardInitUart();
 static void _boardInitPwm();
 static void _boardInitAdc();
+static void _boardInitWdg();
 static void _boardEnableIo(bool enable);
 static int _boardVprintf(char const *format, va_list ap);
 
@@ -108,8 +115,7 @@ void boardInit()
     _boardInitUart();
     _boardInitPwm();
     _boardInitAdc();
-
-    // Todo wdg
+    _boardInitWdg();
 
     // Set wakeup Mask to keep wakeup while the opened pin is hight (dio12).
     BlueNRG_SetWakeupMask(
@@ -374,8 +380,7 @@ void boardOpenItSetLevel(bool open)
     GPIO_EXTIConfigType GPIO_EXTIStructure = {
         .GPIO_Pin = OPENED_PIN,
         .GPIO_IrqSense = GPIO_IrqSense_Level,
-        .GPIO_Event = open ? GPIO_Event_High : GPIO_Event_Low
-    };
+        .GPIO_Event = open ? GPIO_Event_High : GPIO_Event_Low};
     GPIO_EXTIConfig(&GPIO_EXTIStructure);
 }
 
@@ -501,6 +506,18 @@ void _boardInitAdc()
     adc_config(&_board.sensorAdc, ADC_CH_PIN1);
 }
 
+void _boardInitWdg()
+{
+    // Enable watchdog clocks
+    SysCtrl_PeripheralClockCmd(CLOCK_PERIPH_WDG, ENABLE);
+
+    // Set watchdog reload period at 15 seconds
+    WDG_SetReload(_BOARD_RELOAD_TIME(_BOARD_WDG_TIME));
+
+    // Enable WDG
+    WDG_Enable();
+}
+
 // ISR handler -----------------------------------------------------------------
 void GPIO_IT_HANDLER()
 {
@@ -508,7 +525,7 @@ void GPIO_IT_HANDLER()
     if (GPIO_GetITPendingBit(BOND_PIN) == SET)
     {
         GPIO_ClearITPendingBit(BOND_PIN);
-        
+
         // Send event to App task
         BaseType_t xHigherPriorityTaskWoken;
         boardSendEventFromISR(
@@ -535,6 +552,8 @@ void GPIO_IT_HANDLER()
 // Note: App_SleepMode_Check run in IDLE task
 SleepModes App_SleepMode_Check(__attribute__((unused)) SleepModes sleepMode)
 {
+    WDG_SetReload(_BOARD_RELOAD_TIME(_BOARD_WDG_TIME));
+
 #ifdef DEBUG
     // Do not enter deep sleep in debug to keep enable the SWD.
     return SLEEPMODE_CPU_HALT;
