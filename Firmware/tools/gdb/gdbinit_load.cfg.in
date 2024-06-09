@@ -1,6 +1,4 @@
 # Init -----------------------------------------------------------------
-source gdb_target.cfg
-
 # Disable pagination
 set pagination off
 
@@ -11,7 +9,7 @@ set p pretty on
 set prompt \033[00;32mgdb$ \033[0m
 
 # Run openocd and connect it
-eval "target remote | openocd -c \"gdb_port pipe; log_output /tmp/openocd.log\" -f tools/openocd/%s.cfg", $OCD_TARGET
+target remote | openocd -c "gdb_port pipe; log_output /tmp/openocd.log" -f @OCD_SCRIPT@
 
 # Halt the target
 monitor reset halt

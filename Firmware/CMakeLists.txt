@@ -131,9 +131,32 @@ add_custom_target(disassemble
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )
 
-# To run cgdb
+# Configure gdb scripts
+set(TARGET_NAME ${CMAKE_PROJECT_NAME}.elf)
+set(OCD_SCRIPT ${CMAKE_SOURCE_DIR}/tools/openocd/bluenrg-2.cfg)
+configure_file(
+    ${CMAKE_SOURCE_DIR}/tools/gdb/gdbinit_debug.cfg.in
+    ${CMAKE_BINARY_DIR}/tools/gdb/gdbinit_debug.cfg
+)
+configure_file(
+    ${CMAKE_SOURCE_DIR}/tools/gdb/gdbinit_load.cfg.in
+    ${CMAKE_BINARY_DIR}/tools/gdb/gdbinit_load.cfg
+)
+
+# Run gdb with cgdb to debug
 add_custom_target(cgdb
     DEPENDS ${CMAKE_PROJECT_NAME}.elf
-    COMMAND cgdb -d ${CMAKE_GDB} --command=${CMAKE_SOURCE_DIR}/tools/gdb/gdb_target.cfg --command=${CMAKE_SOURCE_DIR}/tools/gdb/gdbinit_debug.cfg ${CMAKE_PROJECT_NAME}.elf
+    COMMAND cgdb -d ${CMAKE_GDB}
+    --command=${CMAKE_BINARY_DIR}/tools/gdb/gdbinit_debug.cfg
+    ${CMAKE_PROJECT_NAME}.elf
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+)
+
+# Run gdb with to load
+add_custom_target(load
+    DEPENDS ${CMAKE_PROJECT_NAME}.elf
+    COMMAND ${CMAKE_GDB}
+    -x ${CMAKE_BINARY_DIR}/tools/gdb/gdbinit_load.cfg
+    ${CMAKE_PROJECT_NAME}.elf
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )
