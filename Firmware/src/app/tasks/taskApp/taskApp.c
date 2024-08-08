@@ -436,7 +436,7 @@ void taskAppOpenDoor()
         return;
     }
 
-    boardDgb("App: open the foor.\r\n");
+    boardDgb("App: open the Door.\r\n");
     boardOpen();
 }
 
