@@ -367,7 +367,7 @@ int _taskTermCmdVerbose(int argc, char *argv[])
         else if ((strcasecmp("disable", argv[1]) == 0) ||
                  (strcasecmp("0", argv[1]) == 0))
         {
-            verbose = true;
+            verbose = false;
             taskAppSetVerbose(false);
         }
         else
