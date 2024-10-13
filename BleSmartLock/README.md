@@ -21,11 +21,11 @@ Il faut inverser c'est deux gpio sur le pcb en coupent deux pistes et en croisen
 ![BleSmartLock photo top](photos/photo_bottom2_v1.0.jpg)
 
 #### BOM
-La bom interactive est trouvable [ici](https://antoine163.github.io/ble-smart-lock/Ble_Smart_Lock_1.0-ibom.html). 
+La bom interactive est trouvable [ici](https://antoine163.github.io/ble-smart-lock-hardware/Ble_Smart_Lock_1.0-ibom.html). 
 
 ### Fabrication de la version v1.1
 Je n'est pas fabrique cette version, mais elle dispose exactement des mêmes composent que la v1.0.
-La bom interactive est trouvable [ici](https://antoine163.github.io/ble-smart-lock/Ble%20Smart%20Lock-1.1-ibom.html). 
+La bom interactive est trouvable [ici](https://antoine163.github.io/ble-smart-lock-hardware/Ble%20Smart%20Lock-1.1-ibom.html). 
 
 # Schématique
 ![ ](images/BleSmartLock.svg  "")
